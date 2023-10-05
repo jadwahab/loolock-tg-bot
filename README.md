@@ -6,7 +6,6 @@
 [] add input from admin to determine
   [] leaderboard mode
   [] minimum lock amount X
-[] type hfsp after kick
 [] start off when joining new group iterating through each member asking for their sigs
 [] update users
   [] check new leaderboard
