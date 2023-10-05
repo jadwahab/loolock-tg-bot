@@ -33,3 +33,6 @@ github.com/pkg/errors
 # golang.org/x/crypto v0.13.0
 ## explicit; go 1.17
 golang.org/x/crypto/ripemd160
+# gopkg.in/yaml.v2 v2.4.0
+## explicit; go 1.15
+gopkg.in/yaml.v2

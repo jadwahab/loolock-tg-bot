@@ -1,18 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jadwahab/loolock-tg-bot/db"
+	_ "github.com/lib/pq"
 )
-
-const adminTimeout = 1    // Timeout for how many mins bot waits to be made admin before leaving
-const kickTimeout = 24    // Timeout for how many hours a user is banned from group after being kicked
-const responseTimeout = 5 // Timeout for how many mins to wait with no response before kicking
 
 // Keeps track of user ID and their challenge string + number of attempts
 var challengeUserMap = make(map[int64]*UserChallenge)
@@ -23,17 +23,25 @@ type UserChallenge struct {
 }
 
 func main() {
-	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	// if err != nil {
-	// 	log.Fatalf("Error opening database: %q", err)
-	// }
-	// defer db.Close()
-	// // Test the connection
-	// err = db.Ping()
-	// if err != nil {
-	// 	fmt.Println("Error:", err)
-	// 	return nil, err
-	// }
+	config, err := LoadConfig("config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load config: %s", err)
+	}
+
+	conn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("Error opening database: %q", err)
+	}
+	defer conn.Close()
+	// Test the connection
+	err = conn.Ping()
+	if err != nil {
+		log.Fatalf("Error pinging database: %q", err)
+	}
+
+	dbp := db.DBParams{
+		DB: conn,
+	}
 
 	botToken := os.Getenv("BOT_TOKEN")
 	if botToken == "" {
@@ -43,7 +51,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	bot.Debug = true
+	bot.Debug = config.BotDebug
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
@@ -67,7 +75,7 @@ func main() {
 					messages := []string{
 						"gm ELITES",
 						"Only top 100 LooLockers are allowed.",
-						fmt.Sprintf("You have %d min to make me group admin or else I will leave.", int(adminTimeout)),
+						fmt.Sprintf("You have %d min to make me group admin or else I will leave.", int(config.AdminTimeout)),
 					}
 					for _, messageText := range messages {
 						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, messageText))
@@ -78,7 +86,7 @@ func main() {
 
 					// Start a timer to leave if not made admin
 					go func(chatID int64) {
-						time.Sleep(adminTimeout * time.Minute)
+						time.Sleep(time.Duration(config.AdminTimeout) * time.Minute)
 						if !isBotAdmin(bot, chatID) {
 							leaveMsg := "I wasn't made an admin in time, so I'm out. ✌️"
 							_, err := bot.Send(tgbotapi.NewMessage(chatID, leaveMsg))
@@ -91,6 +99,30 @@ func main() {
 					break
 
 				} else { // A new member joined, and it's not the bot, send challenge
+
+					userEntry, err := dbp.GetUserByTelegramUsername(newUser.UserName)
+					if err != nil {
+						log.Printf("Database error while fetching user: %v", err)
+						continue
+					}
+
+					if userEntry.IsVerified {
+						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome back fam!"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+						break
+					}
+
+					// If the new member's telegram username is not found in the database
+					if userEntry == nil {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please provide your paymail to verify your status on the leaderboard.")
+						_, err = bot.Send(msg)
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+					}
+
 					challenge := "1RELAYTEST|" + generateRandomString(20)
 					challengeUserMap[newUser.ID] = &UserChallenge{Challenge: challenge, Attempts: 0} // Store challenge for this user
 
@@ -109,10 +141,10 @@ func main() {
 
 					// Start a timer to kick the user if they don't respond in `responseTimeout` minutes
 					go func(userID int64, chatID int64) {
-						time.Sleep(responseTimeout * time.Minute)
+						time.Sleep(time.Duration(config.ResponseTimeout) * time.Minute)
 
 						if _, stillExists := challengeUserMap[userID]; stillExists {
-							KickUser(bot, chatID, userID)
+							KickUser(bot, chatID, userID, time.Duration(config.KickDuration))
 							delete(challengeUserMap, userID) // Remove user from challenge map
 						}
 					}(newUser.ID, update.Message.Chat.ID)
@@ -122,35 +154,58 @@ func main() {
 			continue
 		}
 
-		// Handle responses to the challenge question
-		if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
-			if update.Message.Text == userChallenge.Challenge {
-				delete(challengeUserMap, update.Message.From.ID)
-				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group!"))
+		// Placeholder check for a paymail format; this is rudimentary and might need more refinement.
+		if len(update.Message.Text) > 5 && strings.Contains(update.Message.Text, "@") {
+			userPaymail := update.Message.Text
+			leaderboardEntry, err := dbp.GetEntryByPaymail(userPaymail)
+
+			if err != nil {
+				log.Printf("Database error while fetching paymail: %v", err)
+				continue
+			}
+
+			if leaderboardEntry == nil {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Sorry, that paymail is not recognized. You will be removed from the group.")
+				_, err = bot.Send(msg)
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
 				}
-			} else {
-				userChallenge.Attempts++
-				if userChallenge.Attempts >= 3 {
-					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Incorrect answer"))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
-					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "HFSP"))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
+				KickUser(bot, update.Message.Chat.ID, update.Message.From.ID, time.Duration(config.KickDuration))
+				continue
+			}
+
+			// Handle responses to the challenge question
+			if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
+				if update.Message.Text == userChallenge.Challenge {
 					delete(challengeUserMap, update.Message.From.ID)
-					KickUser(bot, update.Message.Chat.ID, update.Message.From.ID)
-				} else {
-					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. You have %d attempts left.", 3-userChallenge.Attempts)))
+					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group!"))
 					if err != nil {
 						log.Printf("Failed to send message: %s", err)
+					}
+				} else {
+					userChallenge.Attempts++
+					if userChallenge.Attempts >= 3 { // out of attempts
+						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Incorrect answer"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "HFSP"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+						delete(challengeUserMap, update.Message.From.ID)
+						KickUser(bot, update.Message.Chat.ID, update.Message.From.ID, time.Duration(config.KickDuration))
+					} else { // try again + increment attempts
+						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. You have %d attempts left.", 3-userChallenge.Attempts)))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
 					}
 				}
 			}
+
 		}
+
 	}
 }
 
@@ -188,13 +243,13 @@ func generateRandomString(length int) string {
 	return string(randomString)
 }
 
-func KickUser(bot *tgbotapi.BotAPI, chatID int64, userID int64) {
+func KickUser(bot *tgbotapi.BotAPI, chatID int64, userID int64, kickDuration time.Duration) {
 	_, err := bot.Request(tgbotapi.KickChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: chatID,
 			UserID: userID,
 		},
-		UntilDate: int64(time.Now().Add(kickTimeout).Unix()),
+		UntilDate: int64(time.Now().Add(kickDuration).Unix()),
 	})
 	if err != nil {
 		log.Printf("Failed to kick user: %s", err)
