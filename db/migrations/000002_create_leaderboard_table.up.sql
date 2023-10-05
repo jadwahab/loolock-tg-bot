@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS leaderboard (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- Creating an index on paymail for efficient lookups.
 CREATE INDEX IF NOT EXISTS idx_paymail ON leaderboard(paymail);
+CREATE INDEX IF NOT EXISTS idx_telegram_username ON leaderboard(telegram_username);

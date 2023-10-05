@@ -11,12 +11,16 @@ type DBParams struct {
 }
 
 type LeaderboardEntry struct {
-	ID           int64
-	AmountLocked int64
-	Paymail      string
-	PublicKey    string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID               int64
+	AmountLocked     int64
+	Paymail          string
+	PublicKey        string
+	TelegramUsername string
+	IsVerified       bool
+	Challenge        string
+	Signature        string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // Add a new leaderboard entry
@@ -88,4 +92,22 @@ func (db *DBParams) UpdateLeaderboard(leaderboardData []LeaderboardEntry) error 
 		}
 	}
 	return nil
+}
+
+func (db *DBParams) GetUserByTelegramUsername(username string) (LeaderboardEntry, error) {
+	var user LeaderboardEntry
+	err := db.DB.QueryRow("SELECT * FROM leaderboard WHERE telegram_username = $1", username).Scan(&user.ID, &user.AmountLocked, &user.Paymail, &user.PublicKey, &user.TelegramUsername, &user.IsVerified, &user.Challenge, &user.Signature, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return LeaderboardEntry{}, err
+	}
+	return user, nil
+}
+
+func (db *DBParams) GetEntryByPaymail(paymail string) (LeaderboardEntry, error) {
+	var entry LeaderboardEntry
+	err := db.DB.QueryRow("SELECT * FROM leaderboard WHERE paymail = $1", paymail).Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.TelegramUsername, &entry.IsVerified, &entry.Challenge, &entry.Signature, &entry.CreatedAt, &entry.UpdatedAt)
+	if err != nil {
+		return LeaderboardEntry{}, err
+	}
+	return entry, nil
 }
