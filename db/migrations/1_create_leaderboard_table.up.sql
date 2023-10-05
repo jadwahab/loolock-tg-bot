@@ -1,0 +1,8 @@
+CREATE TABLE leaderboard (
+    id SERIAL PRIMARY KEY,
+    amount_locked BIGINT NOT NULL,
+    paymail VARCHAR(255) NOT NULL,
+    public_key CHAR(66) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
