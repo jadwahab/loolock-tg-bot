@@ -112,18 +112,7 @@ func main() {
 						time.Sleep(responseTimeout * time.Minute)
 
 						if _, stillExists := challengeUserMap[userID]; stillExists {
-							kickConfig := tgbotapi.KickChatMemberConfig{
-								ChatMemberConfig: tgbotapi.ChatMemberConfig{
-									ChatID: chatID,
-									UserID: userID,
-								},
-								UntilDate: int64(time.Now().Add(kickTimeout * time.Hour).Unix()),
-							}
-
-							_, err := bot.Request(kickConfig)
-							if err != nil {
-								log.Printf("Failed to kick user: %s", err)
-							}
+							KickUser(bot, chatID, userID)
 							delete(challengeUserMap, userID) // Remove user from challenge map
 						}
 					}(newUser.ID, update.Message.Chat.ID)
@@ -153,12 +142,7 @@ func main() {
 						log.Printf("Failed to send message: %s", err)
 					}
 					delete(challengeUserMap, update.Message.From.ID)
-					bot.Request(tgbotapi.KickChatMemberConfig{
-						ChatMemberConfig: tgbotapi.ChatMemberConfig{
-							ChatID: update.Message.Chat.ID,
-							UserID: update.Message.From.ID,
-						},
-					})
+					KickUser(bot, update.Message.Chat.ID, update.Message.From.ID)
 				} else {
 					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. You have %d attempts left.", 3-userChallenge.Attempts)))
 					if err != nil {
@@ -202,4 +186,17 @@ func generateRandomString(length int) string {
 	}
 
 	return string(randomString)
+}
+
+func KickUser(bot *tgbotapi.BotAPI, chatID int64, userID int64) {
+	_, err := bot.Request(tgbotapi.KickChatMemberConfig{
+		ChatMemberConfig: tgbotapi.ChatMemberConfig{
+			ChatID: chatID,
+			UserID: userID,
+		},
+		UntilDate: int64(time.Now().Add(kickTimeout).Unix()),
+	})
+	if err != nil {
+		log.Printf("Failed to kick user: %s", err)
+	}
 }
