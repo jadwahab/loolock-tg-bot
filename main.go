@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	_ "github.com/lib/pq"
 )
@@ -23,7 +24,7 @@ type UserChallenge struct {
 }
 
 func main() {
-	config, err := LoadConfig("config.yaml")
+	config, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load config: %s", err)
 	}
