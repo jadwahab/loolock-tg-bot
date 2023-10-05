@@ -2,123 +2,72 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"time"
-
-	_ "github.com/lib/pq"
 )
 
 type DBParams struct {
 	DB *sql.DB
 }
 
-func (dbp *DBParams) Insert(btcinscnumber int, btctxid, bsvtxid, btcinscid string) error {
-	// Prepare the SQL statement
-	stmt, err := dbp.DB.Prepare("INSERT INTO reinks (created, modified, btcinscnumber, btctxid, bsvtxid, btcinscid) VALUES ($1, $2, $3, $4, $5, $6)")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return err
-	}
-	defer stmt.Close()
-
-	// Set the values for the SQL statement
-	created := time.Now()
-	modified := time.Now()
-
-	// Execute the SQL statement with the values
-	_, err = stmt.Exec(created, modified, btcinscnumber, btctxid, bsvtxid, btcinscid)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return err
-	}
-
-	fmt.Println("Inserted row into 'reinks' table successfully at index: " + fmt.Sprint(btcinscnumber))
-	return nil
+type LeaderboardEntry struct {
+	ID           int64
+	AmountLocked int64
+	Paymail      string
+	PublicKey    string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
-type Reink struct {
-	Created       time.Time
-	Modified      time.Time
-	BTCInsCNumber int
-	BTCTxID       string
-	BSVTxID       string
-	BTCInsCID     string
+// Add a new leaderboard entry
+func (db *DBParams) AddEntry(entry LeaderboardEntry) error {
+	_, err := db.DB.Exec(`INSERT INTO leaderboard (amount_locked, paymail, public_key, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
+		entry.AmountLocked, entry.Paymail, entry.PublicKey, time.Now(), time.Now())
+	return err
 }
 
-func (dbp *DBParams) GetReink(btcinscnumber int) (*Reink, error) {
-	// Prepare the SQL statement
-	stmt, err := dbp.DB.Prepare("SELECT created, modified, btcinscnumber, btctxid, bsvtxid, btcinscid FROM reinks WHERE btcinscnumber = $1")
+// Retrieve leaderboard, ordered by amount locked
+func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
+	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC`)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.Query(btcinscnumber)
-	if err != nil {
-		fmt.Println("Error:", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Iterate over the rows of the result set and return the first result
+	var entries []LeaderboardEntry
 	for rows.Next() {
-		var reink Reink
-		err := rows.Scan(&reink.Created, &reink.Modified, &reink.BTCInsCNumber, &reink.BTCTxID, &reink.BSVTxID, &reink.BTCInsCID)
-		if err != nil {
-			fmt.Println("Error:", err)
+		var entry LeaderboardEntry
+		if err := rows.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
 			return nil, err
 		}
-		// fmt.Printf("%+v\n", reink)
-		return &reink, nil
+		entries = append(entries, entry)
 	}
-
-	// Check for errors during iteration
-	if err = rows.Err(); err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
-
-	// If no results were found, return nil and an error
-	return nil, fmt.Errorf("no results found for btcinscnumber %d", btcinscnumber)
-
+	return entries, nil
 }
 
-func (dbp *DBParams) GetLatestRink() (int, error) {
-	// Prepare the SQL statement
-	stmt, err := dbp.DB.Prepare("select * from reinks order by btcinscnumber desc limit 1")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return 0, err
-	}
-	defer stmt.Close()
+// Update leaderboard entry by ID
+func (db *DBParams) UpdateEntryByID(id int64, updatedEntry LeaderboardEntry) error {
+	_, err := db.DB.Exec(`UPDATE leaderboard SET amount_locked=$1, paymail=$2, public_key=$3, updated_at=$4 WHERE id=$5`,
+		updatedEntry.AmountLocked, updatedEntry.Paymail, updatedEntry.PublicKey, time.Now(), id)
+	return err
+}
 
-	rows, err := stmt.Query()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return 0, err
-	}
-	defer rows.Close()
+// Delete leaderboard entry by ID
+func (db *DBParams) DeleteEntryByID(id int64) error {
+	_, err := db.DB.Exec(`DELETE FROM leaderboard WHERE id=$1`, id)
+	return err
+}
 
-	// Iterate over the rows of the result set and return the first result
-	for rows.Next() {
-		var reink Reink
-		err := rows.Scan(&reink.Created, &reink.Modified, &reink.BTCInsCNumber, &reink.BTCTxID, &reink.BSVTxID, &reink.BTCInsCID)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return 0, err
+// Find leaderboard entry by paymail
+func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
+	row := db.DB.QueryRow(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard WHERE paymail=$1`, paymail)
+
+	var entry LeaderboardEntry
+	if err := row.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
 		}
-		// fmt.Printf("%+v\n", reink)
-		return reink.BTCInsCNumber, nil
+		return nil, err
 	}
-
-	// Check for errors during iteration
-	if err = rows.Err(); err != nil {
-		fmt.Println("Error:", err)
-		return 0, err
-	}
-
-	// If no results were found, return nil and an error
-	return 0, fmt.Errorf("no results found")
-
+	return &entry, nil
 }
