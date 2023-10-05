@@ -71,3 +71,21 @@ func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error
 	}
 	return &entry, nil
 }
+
+func (db *DBParams) UpdateLeaderboard(leaderboardData []LeaderboardEntry) error {
+	// Prepare SQL for upsert
+	sqlStatement := `
+			INSERT INTO leaderboard (paymail, public_key, amount_locked, last_updated)
+			VALUES ($1, $2, $3, NOW())
+			ON CONFLICT (paymail)
+			DO UPDATE SET amount_locked = EXCLUDED.amount_locked, last_updated = NOW();
+	`
+
+	for _, entry := range leaderboardData {
+		_, err := db.DB.Exec(sqlStatement, entry.Paymail, entry.PublicKey, entry.AmountLocked)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
