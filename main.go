@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/jadwahab/loolock-tg-bot/helpers"
 	_ "github.com/lib/pq"
 )
+
+const signingBitcomPrefix = "17DqbMhfHzLGjYqmiLAjhzAzKf3f1sK9Rc"
 
 // Keeps track of user ID and their challenge string + number of attempts
 var challengeUserMap = make(map[int64]*UserChallenge)
@@ -126,7 +129,8 @@ func main() {
 						"Welcome @%s\n\n"+
 							"Only top 100 LooLockers are allowed.\n\n"+
 							"To prove that you are on the leaderboard, please sign this message "+
-							"and then send 1 message with relay paymail on 1st line and signature on 2nd."+ // change to pub key
+							"and then send 1 message with relay paymail on 1st line and signature on 2nd.\n"+ // TODO: change to pub key
+							"Use this website to sign: https://relayauth.libsv.dev/"+
 							"\n\nExample:\n\n"+
 							"jek@relayx.io\nIJDiGEdovFRf/U2WtJ6WJz59eBupAuZDJKXe0/O1aJvAYSF4xGW2ZllIUX6cybm51Uv5f1GRID41v7bcIVr4Jrk=",
 						newUser.UserName)))
@@ -134,7 +138,7 @@ func main() {
 						log.Printf("Failed to send message: %s", err)
 					}
 
-					challenge := "1RELAYTEST|" + newUser.UserName // + generateRandomString(5)
+					challenge := signingBitcomPrefix + "|" + newUser.UserName + "|" + generateRandomString(5)
 					// Store challenge for this user
 					challengeUserMap[newUser.ID] = &UserChallenge{Challenge: challenge, Attempts: 0}
 
@@ -187,6 +191,7 @@ func main() {
 					KickDuration: time.Duration(config.KickDuration),
 					UserName:     update.Message.From.UserName,
 				})
+				delete(challengeUserMap, update.Message.From.ID)
 				continue
 
 			} else { // paymail found
@@ -284,15 +289,15 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 	}
 }
 
-// func generateRandomString(length int) string {
-// 	rand.Seed(time.Now().UnixNano())
+func generateRandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
 
-// 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-// 	randomString := make([]byte, length)
-// 	for i := range randomString {
-// 		randomString[i] = charset[rand.Intn(len(charset))]
-// 	}
+	randomString := make([]byte, length)
+	for i := range randomString {
+		randomString[i] = charset[rand.Intn(len(charset))]
+	}
 
-// 	return string(randomString)
-// }
+	return string(randomString)
+}
