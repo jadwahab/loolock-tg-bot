@@ -23,6 +23,22 @@ type LeaderboardEntry struct {
 	UpdatedAt        time.Time
 }
 
+func (db *DBParams) AddUserToGroupChatDB(chatID int64, userID int64, username string) error {
+	_, err := db.DB.Exec(
+		"INSERT INTO group_chat_users (chat_id, user_id, username) VALUES ($1, $2, $3)",
+		chatID, userID, username,
+	)
+	return err
+}
+
+func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error {
+	_, err := db.DB.Exec(
+		"DELETE FROM group_chat_users WHERE chat_id = $1 AND user_id = $2",
+		chatID, userID,
+	)
+	return err
+}
+
 // Retrieve leaderboard, ordered by amount locked
 func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
 	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC`)
@@ -42,10 +58,10 @@ func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
 	return entries, nil
 }
 
-// Update leaderboard entry by ID
-func (db *DBParams) UpdateEntryByID(id int64, updatedEntry LeaderboardEntry) error {
-	_, err := db.DB.Exec(`UPDATE leaderboard SET amount_locked=$1, paymail=$2, public_key=$3, updated_at=$4 WHERE id=$5`,
-		updatedEntry.AmountLocked, updatedEntry.Paymail, updatedEntry.PublicKey, time.Now(), id)
+// Update verified user with additional fields
+func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, signature string) error {
+	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, is_verified=$2, challenge=$3, signature=$4, updated_at=$5 WHERE paymail=$6`,
+		telegramUsername, true, challenge, signature, time.Now(), paymail)
 	return err
 }
 
@@ -105,4 +121,15 @@ func (db *DBParams) GetEntryByPaymail(paymail string) (*LeaderboardEntry, error)
 		return nil, err
 	}
 	return &entry, nil
+}
+
+func (db *DBParams) GetPaymailPubkey(paymail string) (string, error) {
+	var pubkey string
+	if err := db.DB.QueryRow("SELECT public_key FROM leaderboard WHERE paymail = $1", paymail).Scan(&pubkey); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return pubkey, nil
 }

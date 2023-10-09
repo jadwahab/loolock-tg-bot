@@ -73,6 +73,14 @@ func main() {
 			continue
 		}
 
+		if update.Message.LeftChatMember != nil { // User leaves group
+			leaver := update.Message.LeftChatMember
+			err := dbp.RemoveUserFromGroupChatDB(update.Message.Chat.ID, leaver.ID)
+			if err != nil {
+				log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
+			}
+		}
+
 		if update.Message != nil {
 
 			if _, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response

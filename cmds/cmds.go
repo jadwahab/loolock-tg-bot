@@ -13,6 +13,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
+	"github.com/jadwahab/loolock-tg-bot/helpers"
 	"github.com/tonicpow/go-paymail"
 )
 
@@ -201,16 +202,22 @@ func HandleChallengeResponse(cfg config.Config, dbp db.DBParams,
 
 	} else { // paymail found
 		if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
-			// TODO: validate sig with public key
-			log.Printf("SIG: %s", sig)
-			validSig := update.Message.Text == userChallenge.Challenge
-			if validSig {
-				// TODO: update db with sig and verified data
-				delete(challengeUserMap, update.Message.From.ID)
-				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group!"))
+
+			if helpers.VerifyBSM(leaderboardEntry.PublicKey, sig, userChallenge.Challenge) { // sig verified
+				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, userChallenge.Challenge, sig)
+				if err != nil {
+					log.Printf("Failed to update verified user in leaderboard table: %s", err)
+				}
+				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+				if err != nil {
+					log.Printf("Failed to add user to group table: %s", err)
+				}
+				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group @"+update.Message.From.UserName+"!"))
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
 				}
+				delete(challengeUserMap, update.Message.From.ID)
+
 			} else {
 				userChallenge.Attempts++
 				if userChallenge.Attempts >= 3 { // out of attempts
