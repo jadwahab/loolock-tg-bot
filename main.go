@@ -2,10 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
@@ -77,53 +75,6 @@ func main() {
 
 		if update.Message != nil {
 
-			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) {
-				commandArgs := strings.Fields(update.Message.Text)
-
-				switch commandArgs[0] {
-				case "/adduser":
-					if len(commandArgs) == 3 {
-						cmds.AddUser(commandArgs[1], commandArgs[2], dbp, bot, update)
-					} else {
-						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid /adduser format. Use /adduser <paymail> <amount>."))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
-					}
-
-				case "/leaderboard":
-					leaderboard, err := dbp.GetLeaderboard()
-					if err != nil {
-						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
-						continue
-					}
-
-					var sb strings.Builder
-					for i, user := range leaderboard {
-						sb.WriteString(fmt.Sprintf("%d- %s - %f\n", i+1, user.Paymail, user.AmountLocked))
-					}
-					resultString := sb.String()
-					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, resultString))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
-
-				case "/refresh":
-
-				default:
-					if strings.HasPrefix(commandArgs[0], "/") {
-						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /leaderboard or /refresh"))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
-					}
-				}
-				continue
-			}
-
 			if _, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
 				paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 				if update.Message.Text != "" && valid {
@@ -134,6 +85,11 @@ func main() {
 						log.Printf("Failed to send message: %s", err)
 					}
 				}
+			}
+
+			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) {
+				cmds.AdminCommand(update.Message.Text, dbp, bot, update)
+				continue
 			}
 		}
 

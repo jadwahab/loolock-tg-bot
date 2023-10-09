@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -308,4 +309,50 @@ func GetPubKey(paymail string) (string, error) { // TODO: get public key for any
 		return "", err
 	}
 	return data.PubKey, nil
+}
+
+func AdminCommand(cmd string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	commandArgs := strings.Fields(cmd)
+
+	switch commandArgs[0] {
+	case "/adduser":
+		if len(commandArgs) == 3 {
+			AddUser(commandArgs[1], commandArgs[2], dbp, bot, update)
+		} else {
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid /adduser format. Use /adduser <paymail> <amount>."))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+		}
+
+	case "/leaderboard":
+		leaderboard, err := dbp.GetLeaderboard()
+		if err != nil {
+			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+			return
+		}
+
+		var sb strings.Builder
+		for i, user := range leaderboard {
+			sb.WriteString(fmt.Sprintf("%d- %s - %f\n", i+1, user.Paymail, user.AmountLocked))
+		}
+		resultString := sb.String()
+		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, resultString))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
+
+	case "/refresh":
+
+	default:
+		if strings.HasPrefix(commandArgs[0], "/") {
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /leaderboard or /refresh"))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+		}
+	}
 }
