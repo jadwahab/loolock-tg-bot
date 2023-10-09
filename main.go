@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -89,11 +90,32 @@ func main() {
 							log.Printf("Failed to send message: %s", err)
 						}
 					}
+
 				case "/leaderboard":
+					leaderboard, err := dbp.GetLeaderboard()
+					if err != nil {
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+						continue
+					}
+
+					var sb strings.Builder
+					for i, user := range leaderboard {
+						sb.WriteString(fmt.Sprintf("%d- %s - %f\n", i+1, user.Paymail, user.AmountLocked))
+					}
+					resultString := sb.String()
+					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, resultString))
+					if err != nil {
+						log.Printf("Failed to send message: %s", err)
+					}
+
+				case "/refresh":
 
 				default:
 					if strings.HasPrefix(commandArgs[0], "/") {
-						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /refreshdb"))
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /leaderboard or /refresh"))
 						if err != nil {
 							log.Printf("Failed to send message: %s", err)
 						}
