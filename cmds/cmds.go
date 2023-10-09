@@ -91,8 +91,33 @@ func SendNewUserChallenge(cfg config.Config, dbp db.DBParams, newUser tgbotapi.U
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)
 			}
-			// TODO: handle returning user
-			// check db to see if they are back on leaderboard
+
+			onLeaderboard, err := dbp.IsPaymailInTop100(userEntry.Paymail)
+			if err != nil {
+				log.Printf("Failed to check leaderboard DB: %s", err)
+			}
+
+			if onLeaderboard {
+				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+				if err != nil {
+					log.Printf("Failed to add user to group table: %s", err)
+				}
+				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group @"+update.Message.From.UserName+"!"))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+			} else {
+				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You fell off the leaderboard!\nNGMI..."))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+				KickUser(bot, &KickArgs{
+					ChatID:       update.Message.Chat.ID,
+					UserID:       update.Message.From.ID,
+					KickDuration: time.Duration(cfg.KickDuration),
+					UserName:     update.Message.From.UserName,
+				})
+			}
 			return
 		}
 	}

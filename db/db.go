@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -39,9 +40,9 @@ func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error 
 	return err
 }
 
-// Retrieve leaderboard, ordered by amount locked
+// Retrieve top 100 leaderboard entries, ordered by amount locked
 func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC`)
+	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +57,22 @@ func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
 		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+// Check if a specific paymail is in the top 100
+func (db *DBParams) IsPaymailInTop100(paymail string) (bool, error) {
+	// Construct a subquery to get the top 100 paymails
+	subquery := `SELECT paymail FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`
+
+	// Use the subquery to directly check if the specific paymail is in the top 100
+	query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM (%s) AS sub WHERE paymail = $1)`, subquery)
+
+	var exists bool
+	err := db.DB.QueryRow(query, paymail).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // Update verified user with additional fields
