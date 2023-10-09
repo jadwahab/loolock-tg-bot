@@ -1,4 +1,4 @@
 adminTimeout: 1     # Timeout for how many mins bot waits to be made admin before leaving
 kickDuration: 24    # Duration of how many hours a user is banned from group after being kicked
 responseTimeout: 5  # Timeout for how many mins to wait with no response before kicking
-botDebug: true     # Bot send debug messages
+botDebug: false     # Bot send debug messages
