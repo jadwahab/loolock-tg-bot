@@ -29,7 +29,13 @@ BOT_TOKEN=
 DATABASE_URL=
 ```
 
-3. Run the bot
+3. Create the database
+
+```
+migrate -database DATABASE_URL -path db/migrations up
+```
+
+4. Run the bot
 
 ```
 go run main.go

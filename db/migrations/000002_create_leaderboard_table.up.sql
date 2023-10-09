@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS leaderboard (
     id SERIAL PRIMARY KEY,
-    amount_locked BIGINT NOT NULL,
+    amount_locked DECIMAL(20, 8) NOT NULL,
     paymail VARCHAR(255) UNIQUE NOT NULL,
     public_key CHAR(66) NOT NULL,
     telegram_username VARCHAR(255),

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
@@ -74,6 +75,33 @@ func main() {
 		}
 
 		if update.Message != nil {
+
+			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) {
+				commandArgs := strings.Fields(update.Message.Text)
+
+				switch commandArgs[0] {
+				case "/adduser":
+					if len(commandArgs) == 3 {
+						cmds.AddUser(commandArgs[1], commandArgs[2], dbp, bot, update)
+					} else {
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid /adduser format. Use /adduser <paymail> <amount>."))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+					}
+				case "/leaderboard":
+
+				default:
+					if strings.HasPrefix(commandArgs[0], "/") {
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /refreshdb"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+					}
+				}
+				continue
+			}
+
 			if _, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
 				paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 				if update.Message.Text != "" && valid {

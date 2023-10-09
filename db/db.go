@@ -12,7 +12,7 @@ type DBParams struct {
 
 type LeaderboardEntry struct {
 	ID               int64
-	AmountLocked     int64
+	AmountLocked     float64
 	Paymail          string
 	PublicKey        string
 	TelegramUsername string
@@ -21,13 +21,6 @@ type LeaderboardEntry struct {
 	Signature        string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-}
-
-// Add a new leaderboard entry
-func (db *DBParams) AddEntry(entry LeaderboardEntry) error {
-	_, err := db.DB.Exec(`INSERT INTO leaderboard (amount_locked, paymail, public_key, created_at, updated_at) VALUES ($1, $2, $3, $4, $5)`,
-		entry.AmountLocked, entry.Paymail, entry.PublicKey, time.Now(), time.Now())
-	return err
 }
 
 // Retrieve leaderboard, ordered by amount locked
@@ -76,20 +69,18 @@ func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error
 	return &entry, nil
 }
 
-func (db *DBParams) UpdateLeaderboard(leaderboardData []*LeaderboardEntry) error {
+func (db *DBParams) UpsertUser(amountLocked float64, paymail, pubkey string) error {
 	// Prepare SQL for upsert
 	sqlStatement := `
-			INSERT INTO leaderboard (paymail, public_key, amount_locked, last_updated)
-			VALUES ($1, $2, $3, NOW())
+			INSERT INTO leaderboard	(amount_locked, paymail, public_key, created_at, updated_at) 
+			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT (paymail)
-			DO UPDATE SET amount_locked = EXCLUDED.amount_locked, last_updated = NOW();
+			DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
 	`
 
-	for _, entry := range leaderboardData {
-		_, err := db.DB.Exec(sqlStatement, entry.Paymail, entry.PublicKey, entry.AmountLocked)
-		if err != nil {
-			return err
-		}
+	_, err := db.DB.Exec(sqlStatement, amountLocked, paymail, pubkey, time.Now(), time.Now())
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -3,6 +3,8 @@ package helpers
 import (
 	"encoding/base64"
 	"strings"
+
+	"github.com/tonicpow/go-paymail"
 )
 
 func IsValidChallengeResponse(message string) (string, string, bool) {
@@ -12,19 +14,19 @@ func IsValidChallengeResponse(message string) (string, string, bool) {
 		return "", "", false
 	}
 
-	paymail := strings.TrimSpace(lines[0])
+	paymailAddress := strings.TrimSpace(lines[0])
 	signature := strings.TrimSpace(lines[1])
 
-	// Basic check for paymail format
-	if !strings.Contains(paymail, "@") {
-		return "", "", false
-	}
-
-	// Check if signature is a valid Base64 string
-	_, err := base64.StdEncoding.DecodeString(signature)
+	s, err := paymail.ValidateAndSanitisePaymail(paymailAddress, false)
 	if err != nil {
 		return "", "", false
 	}
 
-	return paymail, signature, true
+	// Check if signature is a valid Base64 string
+	_, err = base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		return "", "", false
+	}
+
+	return s.Address, signature, true
 }
