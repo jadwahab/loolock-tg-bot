@@ -29,7 +29,7 @@ func WelcomeMessage(cfg config.Config, bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	// Start a timer to leave if not made admin
 	go func(chatID int64) {
 		time.Sleep(time.Duration(cfg.AdminTimeout) * time.Minute)
-		if isBotAdmin(bot, chatID) {
+		if IsUserAdmin(bot, chatID, bot.Self.ID) {
 			thankYouMsg := "Thank you for making me an admin!"
 			_, err := bot.Send(tgbotapi.NewMessage(chatID, thankYouMsg))
 			if err != nil {
@@ -46,7 +46,7 @@ func WelcomeMessage(cfg config.Config, bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	}(update.Message.Chat.ID)
 }
 
-func isBotAdmin(bot *tgbotapi.BotAPI, chatID int64) bool {
+func IsUserAdmin(bot *tgbotapi.BotAPI, chatID int64, userID int64) bool {
 	chatAdminConfig := tgbotapi.ChatAdministratorsConfig{
 		ChatConfig: tgbotapi.ChatConfig{
 			ChatID: chatID,
@@ -60,7 +60,7 @@ func isBotAdmin(bot *tgbotapi.BotAPI, chatID int64) bool {
 	}
 
 	for _, admin := range admins {
-		if admin.User.ID == bot.Self.ID {
+		if admin.User.ID == userID {
 			return true
 		}
 	}
