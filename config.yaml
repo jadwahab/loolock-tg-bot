@@ -1,5 +1,5 @@
 adminTimeout: 1     # Timeout for how many mins bot waits to be made admin before leaving
-kickDuration: 24    # Duration of how many hours a user is banned from group after being kicked
-responseTimeout: 5  # Timeout for how many mins to wait with no response before kicking
+kickDuration: 0    # Duration of how many hours a user is banned from group after being kicked
+responseTimeout: 10  # Timeout for how many mins to wait with no response before kicking
 botDebug: false     # Bot send debug messages
-refreshPeriod: 6    # Refresh rate interval (hours)
+refreshPeriod: 24    # Refresh rate interval (hours)

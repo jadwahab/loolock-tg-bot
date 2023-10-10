@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	"github.com/jadwahab/loolock-tg-bot/helpers"
 	"github.com/tonicpow/go-paymail"
@@ -62,7 +63,7 @@ func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgb
 		}
 
 	case "/refresh":
-		helpers.Refresh(dbp, bot, update)
+		helpers.Refresh(config.Config{KickDuration: 0}, dbp, bot, update.Message.Chat.ID)
 
 	default:
 		if strings.HasPrefix(commandArgs[0], "/") {

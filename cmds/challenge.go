@@ -21,7 +21,7 @@ type UserChallenge struct {
 }
 
 func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.User,
-	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]*UserChallenge) {
+	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]string) {
 
 	userEntry, err := dbp.GetUserByTelegramUsername(newUser.UserName)
 	if err != nil {
@@ -40,10 +40,6 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 			}
 
 			if onLeaderboard {
-				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
-				if err != nil {
-					log.Printf("Failed to add user to group table: %s", err)
-				}
 				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group @"+update.Message.From.UserName+"!"))
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
@@ -53,11 +49,12 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
 				}
-				KickUser(bot, &KickArgs{
+				helpers.KickUser(bot, &helpers.KickArgs{
 					ChatID:       update.Message.Chat.ID,
 					UserID:       update.Message.From.ID,
 					KickDuration: time.Duration(cfg.KickDuration),
 					UserName:     update.Message.From.UserName,
+					DBP:          dbp,
 				})
 			}
 			return
@@ -71,7 +68,8 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 			"and then send 1 message with relay paymail on 1st line and signature on 2nd.\n"+ // TODO: change to pub key
 			"Use this website to sign: https://relayauth.libsv.dev/"+
 			"\n\nExample:\n\n"+
-			"jek@relayx.io\nIJDiGEdovFRf/U2WtJ6WJz59eBupAuZDJKXe0/O1aJvAYSF4xGW2ZllIUX6cybm51Uv5f1GRID41v7bcIVr4Jrk=",
+			"17DqbMhfHzLGjYqmiLAjhzAzKf3f1sK9Rc|unfudabledragon|FQ5im\njek@relayx.io\n"+
+			"IJDiGEdovFRf/U2WtJ6WJz59eBupAuZDJKXe0/O1aJvAYSF4xGW2ZllIUX6cybm51Uv5f1GRID41v7bcIVr4Jrk=",
 		newUser.UserName)))
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
@@ -79,7 +77,7 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 
 	challenge := signingBitcomPrefix + "|" + newUser.UserName + "|" + generateRandomString(5)
 	// Store challenge for this user
-	challengeUserMap[newUser.ID] = &UserChallenge{Challenge: challenge, Attempts: 0}
+	challengeUserMap[newUser.ID] = challenge
 
 	_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, challenge))
 	if err != nil {
@@ -89,17 +87,18 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 	// Start a timer to kick the user if they don't respond in `responseTimeout` minutes
 	go func(userID int64, chatID int64) {
 		time.Sleep(time.Duration(cfg.ResponseTimeout) * time.Minute)
-		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "No response from @"+newUser.UserName))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
 
 		if _, stillExists := challengeUserMap[userID]; stillExists {
-			KickUser(bot, &KickArgs{
+			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "No response from @"+newUser.UserName))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+			helpers.KickUser(bot, &helpers.KickArgs{
 				ChatID:       chatID,
 				UserID:       userID,
 				KickDuration: time.Duration(cfg.KickDuration),
 				UserName:     newUser.UserName,
+				DBP:          dbp,
 			})
 			delete(challengeUserMap, userID) // Remove user from challenge map
 		}
@@ -121,7 +120,7 @@ func generateRandomString(length int) string {
 }
 
 func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
-	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]*UserChallenge,
+	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]string,
 	paymail, sig string) {
 
 	exists, err := dbp.PaymailExists(paymail)
@@ -135,17 +134,18 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
-		KickUser(bot, &KickArgs{
+		helpers.KickUser(bot, &helpers.KickArgs{
 			ChatID:       update.Message.Chat.ID,
 			UserID:       update.Message.From.ID,
 			KickDuration: time.Duration(cfg.KickDuration),
 			UserName:     update.Message.From.UserName,
+			DBP:          dbp,
 		})
 		delete(challengeUserMap, update.Message.From.ID)
 		return
 
 	} else { // paymail found
-		if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
+		if challenge, exists := challengeUserMap[update.Message.From.ID]; exists {
 
 			pubkey, err := apis.GetPubKey(paymail)
 			if err != nil {
@@ -156,44 +156,20 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 				return
 			}
 
-			if helpers.VerifyBSM(pubkey, sig, userChallenge.Challenge) { // sig verified
-				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, userChallenge.Challenge, pubkey, sig)
+			if helpers.VerifyBSM(pubkey, sig, challenge) { // sig verified
+				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig)
 				if err != nil {
 					log.Printf("Failed to update verified user in leaderboard table: %s", err)
-				}
-				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
-				if err != nil {
-					log.Printf("Failed to add user to group table: %s", err)
 				}
 				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Welcome to the group @"+update.Message.From.UserName+"!"))
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
 				}
-				delete(challengeUserMap, update.Message.From.ID)
 
 			} else {
-				userChallenge.Attempts++
-				if userChallenge.Attempts >= 3 { // out of attempts
-					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Incorrect answer"))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
-					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "HFSP"))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
-					delete(challengeUserMap, update.Message.From.ID)
-					KickUser(bot, &KickArgs{
-						ChatID:       update.Message.Chat.ID,
-						UserID:       update.Message.From.ID,
-						KickDuration: time.Duration(cfg.KickDuration),
-						UserName:     update.Message.From.UserName,
-					})
-				} else { // try again + increment attempts
-					_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. You have %d attempts left.", 3-userChallenge.Attempts)))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
+				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. Sign the message: %s", challenge)))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
 				}
 			}
 		}

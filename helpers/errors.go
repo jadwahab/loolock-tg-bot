@@ -1,6 +1,8 @@
 package helpers
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 // General errors.
 var (

@@ -44,6 +44,35 @@ func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error 
 	return err
 }
 
+type ChatUser struct {
+	UserID   int64
+	UserName string
+}
+
+func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
+	var users []ChatUser
+
+	rows, err := db.DB.Query("SELECT DISTINCT user_id, username FROM group_chat_users WHERE chat_id = $1", chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user ChatUser
+		if err := rows.Scan(&user.UserID, &user.UserName); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 // Retrieve top 100 leaderboard entries, ordered by amount locked
 func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
 	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`)
@@ -134,7 +163,7 @@ func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
 
 func (db *DBParams) GetUserByTelegramUsername(username string) (*LeaderboardEntry, error) {
 	var user LeaderboardEntry
-	if err := db.DB.QueryRow("SELECT * FROM leaderboard WHERE telegram_username = $1", username).Scan(&user.ID, &user.AmountLocked, &user.Paymail, &user.PublicKey, &user.TelegramUsername, &user.IsVerified, &user.Challenge, &user.Signature, &user.CreatedAt, &user.UpdatedAt); err != nil {
+	if err := db.DB.QueryRow("SELECT id, amount_locked, paymail, is_verified FROM leaderboard WHERE telegram_username = $1", username).Scan(&user.ID, &user.AmountLocked, &user.Paymail, &user.IsVerified); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -154,6 +183,35 @@ func (db *DBParams) PaymailExists(paymail string) (bool, error) {
 
 	return exists, nil
 }
+
+// func (db *DBParams) UpsertChallengeAndUsername(challengeValue, telegramUsernameValue string) error {
+// 	sqlStatement := `
+// 		INSERT INTO leaderboard (challenge, telegram_username)
+// 		VALUES ($1, $2)
+// 		ON CONFLICT (telegram_username)
+// 		DO UPDATE SET challenge = EXCLUDED.challenge;
+// 	`
+// 	_, err := db.DB.Exec(sqlStatement, challengeValue, telegramUsernameValue)
+// 	return err
+// }
+
+// func (db *DBParams) GetChallengeForPaymail(paymailValue string) (string, error) {
+// 	var challenge string
+// 	sqlStatement := `
+// 		SELECT challenge
+// 		FROM leaderboard
+// 		WHERE paymail = $1;
+// 	`
+// 	err := db.DB.QueryRow(sqlStatement, paymailValue).Scan(&challenge)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return "", nil
+// 		}
+// 		return "", err
+// 	}
+
+// 	return challenge, nil
+// }
 
 // func (db *DBParams) GetEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
 // 	var entry LeaderboardEntry

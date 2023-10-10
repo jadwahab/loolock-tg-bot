@@ -56,28 +56,3 @@ func IsUserAdmin(bot *tgbotapi.BotAPI, chatID int64, userID int64) bool {
 	}
 	return false
 }
-
-type KickArgs struct {
-	ChatID       int64
-	UserID       int64
-	UserName     string
-	KickDuration time.Duration
-}
-
-func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
-	_, err := bot.Request(tgbotapi.KickChatMemberConfig{
-		ChatMemberConfig: tgbotapi.ChatMemberConfig{
-			ChatID: ka.ChatID,
-			UserID: ka.UserID,
-		},
-		UntilDate: int64(time.Now().Add(ka.KickDuration).Unix()),
-	})
-	if err != nil {
-		log.Printf("Failed to kick user: %s", err)
-	} else {
-		_, err = bot.Send(tgbotapi.NewMessage(ka.ChatID, fmt.Sprintf("@%s has just been kicked...", ka.UserName)))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
-	}
-}

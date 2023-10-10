@@ -2,10 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
@@ -15,8 +13,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Keeps track of user ID and their challenge string + number of attempts
-var challengeUserMap = make(map[int64]*cmds.UserChallenge)
+// Keeps track of user ID and their challenge string
+var challengeUserMap = make(map[int64]string)
 
 func main() {
 	config, err := config.LoadConfig("config.yaml")
@@ -54,19 +52,6 @@ func main() {
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
-
-	// Create a ticker and call the refresh function periodically
-	ticker := time.NewTicker(time.Duration(config.RefreshPeriod) * time.Hour)
-	go func() {
-		for range ticker.C {
-			err := helpers.RefreshLeaderboard(dbp)
-			if err != nil {
-				fmt.Println("Error refreshing leaderboard:", err)
-			} else {
-				fmt.Println("Leaderboard refreshed!")
-			}
-		}
-	}()
 
 	for update := range updates {
 		if update.Message == nil {
@@ -106,6 +91,10 @@ func main() {
 					}
 
 				} else { // Not bot
+					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+					if err != nil {
+						log.Printf("Failed to add user to group table: %s", err)
+					}
 					cmds.SendNewUserChallenge(config, dbp, newUser, bot, update, challengeUserMap)
 				}
 			}
@@ -122,10 +111,17 @@ func main() {
 
 		if update.Message != nil {
 
-			if _, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
-				paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
+			if challengeSaved, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
+				challengeInputted, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 				if update.Message.Text != "" && valid {
-					cmds.HandleChallengeResponse(config, dbp, bot, update, challengeUserMap, paymail, sig)
+					if challengeInputted != challengeSaved {
+						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Please sign this message: "+challengeSaved))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+					} else {
+						cmds.HandleChallengeResponse(config, dbp, bot, update, challengeUserMap, paymail, sig)
+					}
 				} else {
 					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid format, try again."))
 					if err != nil {
@@ -141,4 +137,19 @@ func main() {
 		}
 
 	}
+
+	// TODO: fix periodic refresh
+	// // Create a ticker and call the refresh function periodically
+	// ticker := time.NewTicker(time.Duration(config.RefreshPeriod) * time.Hour)
+	// go func() {
+	// 	for range ticker.C {
+	// 		err := helpers.Refresh(config, dbp, bot)
+	// 		if err != nil {
+	// 			fmt.Println("Error refreshing leaderboard:", err)
+	// 		} else {
+	// 			fmt.Println("Leaderboard refreshed!")
+	// 		}
+	// 	}
+	// }()
+
 }
