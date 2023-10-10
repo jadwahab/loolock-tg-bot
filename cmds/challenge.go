@@ -70,9 +70,11 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 			"Only top 100 LooLockers are allowed.\n\n"+
 			"To prove that you are on the leaderboard, you need to sign a message with your key. "+
 			"Use this website to sign: https://relayauth.libsv.dev?userInput=%s "+
-			"and then copy and paste the result here.",
+			"and then copy and paste the result here.\n\n"+
+			"You have %d mins to respond or you will be auto kicked.",
 		newUser.UserName,
-		challenge)))
+		challenge,
+		cfg.ResponseTimeout)))
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
 	}
