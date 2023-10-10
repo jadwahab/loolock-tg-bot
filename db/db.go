@@ -4,7 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/jadwahab/loolock-tg-bot/apis"
+	"github.com/tonicpow/go-paymail"
 )
 
 type DBParams struct {
@@ -115,6 +119,36 @@ func (db *DBParams) UpsertUser(amountLocked float64, paymail string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
+	// Prepare data
+	var valueStrings []string
+	var valueArgs []interface{}
+	i := 1
+	for _, bitcoiner := range bitcoiners {
+		s, err := paymail.ValidateAndSanitisePaymail("1"+bitcoiner.Handle, false) // TODO: harden instead of prepending '1'
+		if err != nil {
+			return err
+		}
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i, i+1, i+2, i+3))
+		valueArgs = append(valueArgs, bitcoiner.TotalAmountLocked, s.Address, time.Now(), time.Now())
+		i += 4
+	}
+
+	sqlStatement := `
+		INSERT INTO leaderboard (amount_locked, paymail, created_at, updated_at) 
+		VALUES %s
+		ON CONFLICT (paymail)
+		DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
+	`
+	sqlStatement = fmt.Sprintf(sqlStatement, strings.Join(valueStrings, ","))
+	_, err := db.DB.Exec(sqlStatement, valueArgs...)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
