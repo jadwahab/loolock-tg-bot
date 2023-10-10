@@ -1,9 +1,11 @@
 package cmds
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -145,7 +147,7 @@ func HandleChallengeResponse(cfg config.Config, dbp db.DBParams,
 	} else { // paymail found
 		if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
 
-			pubkey, err := helpers.GetPubKey(paymail)
+			pubkey, err := GetPubKey(paymail)
 			if err != nil {
 				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
 				if err != nil {
@@ -196,4 +198,30 @@ func HandleChallengeResponse(cfg config.Config, dbp db.DBParams,
 			}
 		}
 	}
+}
+
+const pkiBaseURL = "https://relayx.io/bsvalias/id/"
+
+type PKIResponseData struct {
+	BsvAlias string `json:"bsvalias"`
+	Handle   string `json:"handle"`
+	PubKey   string `json:"pubkey"`
+}
+
+func GetPubKey(paymail string) (string, error) { // TODO: get public key for any paymail (not just relayx)
+	resp, err := http.Get(pkiBaseURL + paymail)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch data: %s", resp.Status)
+	}
+
+	data := &PKIResponseData{}
+	if err := json.NewDecoder(resp.Body).Decode(data); err != nil {
+		return "", err
+	}
+	return data.PubKey, nil
 }

@@ -42,7 +42,7 @@ func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error 
 
 // Retrieve top 100 leaderboard entries, ordered by amount locked
 func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`)
+	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
 	var entries []LeaderboardEntry
 	for rows.Next() {
 		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
+		if err := rows.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)

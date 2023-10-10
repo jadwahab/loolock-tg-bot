@@ -27,8 +27,23 @@ func AdminCommand(cmd string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 		}
 
 	case "/leaderboard":
+		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Fetching and updating leaderboard..."))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
+		err = helpers.RefreshLeaderboard(dbp)
+		if err != nil {
+			log.Println(err.Error())
+			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from API"))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+			return
+		}
+
 		leaderboard, err := dbp.GetLeaderboard()
 		if err != nil {
+			log.Println(err.Error())
 			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)

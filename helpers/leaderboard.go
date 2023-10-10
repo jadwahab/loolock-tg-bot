@@ -2,16 +2,40 @@ package helpers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/db"
+	"github.com/tonicpow/go-paymail"
 )
 
-func Refresh(dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func Refresh(dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+	err := RefreshLeaderboard(dbp)
+	if err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func RefreshLeaderboard(dbp db.DBParams) error {
+	top100, err := GetTop100Bitcoiners()
+	if err != nil {
+		return err
+	}
+	for _, bitcoiner := range top100 {
+		s, err := paymail.ValidateAndSanitisePaymail("1"+bitcoiner.Handle, false) // TODO: harden instead of prepending '1'
+		if err != nil {
+			return err
+		}
+		err = dbp.UpsertUser(bitcoiner.TotalAmountLocked, s.Address)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type Bitcoiner struct {
@@ -19,6 +43,10 @@ type Bitcoiner struct {
 	Handle            string  `json:"handle"`
 	CreatedAt         string  `json:"created_at"`
 	TotalAmountLocked float64 `json:"totalAmountLocked"`
+}
+
+type BitcoinersResponse struct {
+	Bitcoiners []Bitcoiner `json:"bitcoiners"`
 }
 
 const LeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners"
@@ -35,45 +63,15 @@ func GetTop100Bitcoiners() ([]Bitcoiner, error) {
 		return nil, err
 	}
 
-	var bitcoiners []Bitcoiner
-	if err := json.Unmarshal(body, &bitcoiners); err != nil {
+	var response BitcoinersResponse
+	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
 	}
 
-	// not needed since already ordered in api response
-	// sort.Slice(bitcoiners, func(i, j int) bool {
-	// 	return bitcoiners[i].TotalAmountLocked > bitcoiners[j].TotalAmountLocked
-	// })
-
+	bitcoiners := response.Bitcoiners
 	if len(bitcoiners) > 100 {
 		bitcoiners = bitcoiners[:100]
 	}
 
 	return bitcoiners, nil
-}
-
-const pkiBaseURL = "https://relayx.io/bsvalias/id/"
-
-type PKIResponseData struct {
-	BsvAlias string `json:"bsvalias"`
-	Handle   string `json:"handle"`
-	PubKey   string `json:"pubkey"`
-}
-
-func GetPubKey(paymail string) (string, error) { // TODO: get public key for any paymail (not just relayx)
-	resp, err := http.Get(pkiBaseURL + paymail)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch data: %s", resp.Status)
-	}
-
-	data := &PKIResponseData{}
-	if err := json.NewDecoder(resp.Body).Decode(data); err != nil {
-		return "", err
-	}
-	return data.PubKey, nil
 }
