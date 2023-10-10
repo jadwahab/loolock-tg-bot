@@ -61,22 +61,18 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 		}
 	}
 
-	_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
-		"Welcome @%s\n\n"+
-			"Only top 100 LooLockers are allowed.\n\n"+
-			"To prove that you are on the leaderboard, please sign this message. "+
-			"Copy message below and paste on this website to sign: https://relayauth.libsv.dev/ "+
-			"and then paste result here.",
-		newUser.UserName)))
-	if err != nil {
-		log.Printf("Failed to send message: %s", err)
-	}
-
 	challenge := signingBitcomPrefix + "|" + newUser.UserName + "|" + generateRandomString(5)
 	// Store challenge for this user
 	challengeUserMap[newUser.ID] = challenge
 
-	_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, challenge))
+	_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
+		"Welcome @%s\n\n"+
+			"Only top 100 LooLockers are allowed.\n\n"+
+			"To prove that you are on the leaderboard, you need to sign a message with your key. "+
+			"Use this website to sign: https://relayauth.libsv.dev?userInput=%s "+
+			"and then copy and paste the result here.",
+		newUser.UserName,
+		challenge)))
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
 	}
