@@ -65,7 +65,8 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 		"Welcome @%s\n\n"+
 			"Only top 100 LooLockers are allowed.\n\n"+
 			"To prove that you are on the leaderboard, please sign this message "+
-			"and then send 1 message with relay paymail on 1st line and signature on 2nd.\n"+ // TODO: change to pub key
+			"and then send 1 message with challenge message I will send you in "+
+			"separate message on 1st line, relay paymail on 2nd and signature on 3rd.\n"+ // TODO: change to pub key
 			"Use this website to sign: https://relayauth.libsv.dev/"+
 			"\n\nExample:\n\n"+
 			"17DqbMhfHzLGjYqmiLAjhzAzKf3f1sK9Rc|unfudabledragon|FQ5im\njek@relayx.io\n"+
