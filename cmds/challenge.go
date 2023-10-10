@@ -64,13 +64,9 @@ func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.
 	_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf(
 		"Welcome @%s\n\n"+
 			"Only top 100 LooLockers are allowed.\n\n"+
-			"To prove that you are on the leaderboard, please sign this message "+
-			"and then send 1 message with challenge message I will send you in "+
-			"separate message on 1st line, relay paymail on 2nd and signature on 3rd.\n"+ // TODO: change to pub key
-			"Use this website to sign: https://relayauth.libsv.dev/"+
-			"\n\nExample:\n\n"+
-			"17DqbMhfHzLGjYqmiLAjhzAzKf3f1sK9Rc|unfudabledragon|FQ5im\njek@relayx.io\n"+
-			"IJDiGEdovFRf/U2WtJ6WJz59eBupAuZDJKXe0/O1aJvAYSF4xGW2ZllIUX6cybm51Uv5f1GRID41v7bcIVr4Jrk=",
+			"To prove that you are on the leaderboard, please sign this message. "+
+			"Copy message below and paste on this website to sign: https://relayauth.libsv.dev/ "+
+			"and then paste result here.",
 		newUser.UserName)))
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
