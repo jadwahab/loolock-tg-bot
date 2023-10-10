@@ -25,13 +25,7 @@ func WelcomeMessage(cfg config.Config, bot *tgbotapi.BotAPI, update tgbotapi.Upd
 	// Start a timer to leave if not made admin
 	go func(chatID int64) {
 		time.Sleep(time.Duration(cfg.AdminTimeout) * time.Minute)
-		if IsUserAdmin(bot, chatID, bot.Self.ID) {
-			thankYouMsg := "Thank you for making me an admin!"
-			_, err := bot.Send(tgbotapi.NewMessage(chatID, thankYouMsg))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-		} else {
+		if !IsUserAdmin(bot, chatID, bot.Self.ID) {
 			leaveMsg := "I wasn't made an admin in time, so I'm out. ✌️"
 			_, err := bot.Send(tgbotapi.NewMessage(chatID, leaveMsg))
 			if err != nil {
@@ -80,9 +74,10 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 	})
 	if err != nil {
 		log.Printf("Failed to kick user: %s", err)
-	}
-	_, err = bot.Send(tgbotapi.NewMessage(ka.ChatID, fmt.Sprintf("@%s has just been kicked...", ka.UserName)))
-	if err != nil {
-		log.Printf("Failed to send message: %s", err)
+	} else {
+		_, err = bot.Send(tgbotapi.NewMessage(ka.ChatID, fmt.Sprintf("@%s has just been kicked...", ka.UserName)))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
 	}
 }

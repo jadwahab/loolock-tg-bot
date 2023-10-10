@@ -86,26 +86,6 @@ func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pub
 	return err
 }
 
-// Delete leaderboard entry by ID
-func (db *DBParams) DeleteEntryByID(id int64) error {
-	_, err := db.DB.Exec(`DELETE FROM leaderboard WHERE id=$1`, id)
-	return err
-}
-
-// Find leaderboard entry by paymail
-func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
-	row := db.DB.QueryRow(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard WHERE paymail=$1`, paymail)
-
-	var entry LeaderboardEntry
-	if err := row.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &entry, nil
-}
-
 func (db *DBParams) UpsertUser(amountLocked float64, paymail string) error {
 	// Prepare SQL for upsert
 	sqlStatement := `
@@ -163,24 +143,56 @@ func (db *DBParams) GetUserByTelegramUsername(username string) (*LeaderboardEntr
 	return &user, nil
 }
 
-func (db *DBParams) GetEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
-	var entry LeaderboardEntry
-	if err := db.DB.QueryRow("SELECT * FROM leaderboard WHERE paymail = $1", paymail).Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.TelegramUsername, &entry.IsVerified, &entry.Challenge, &entry.Signature, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, err
+func (db *DBParams) PaymailExists(paymail string) (bool, error) {
+	var exists bool
+
+	query := `SELECT exists(SELECT 1 FROM leaderboard WHERE paymail=$1)`
+	err := db.DB.QueryRow(query, paymail).Scan(&exists)
+	if err != nil {
+		return false, err
 	}
-	return &entry, nil
+
+	return exists, nil
 }
 
-func (db *DBParams) GetPaymailPubkey(paymail string) (string, error) {
-	var pubkey string
-	if err := db.DB.QueryRow("SELECT public_key FROM leaderboard WHERE paymail = $1", paymail).Scan(&pubkey); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		}
-		return "", err
-	}
-	return pubkey, nil
-}
+// func (db *DBParams) GetEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
+// 	var entry LeaderboardEntry
+// 	if err := db.DB.QueryRow("SELECT * FROM leaderboard WHERE paymail = $1", paymail).Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.TelegramUsername, &entry.IsVerified, &entry.Challenge, &entry.Signature, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return nil, nil
+// 		}
+// 		return nil, err
+// 	}
+// 	return &entry, nil
+// }
+
+// func (db *DBParams) GetPaymailPubkey(paymail string) (string, error) {
+// 	var pubkey string
+// 	if err := db.DB.QueryRow("SELECT public_key FROM leaderboard WHERE paymail = $1", paymail).Scan(&pubkey); err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return "", nil
+// 		}
+// 		return "", err
+// 	}
+// 	return pubkey, nil
+// }
+
+// // Delete leaderboard entry by ID
+// func (db *DBParams) DeleteEntryByID(id int64) error {
+// 	_, err := db.DB.Exec(`DELETE FROM leaderboard WHERE id=$1`, id)
+// 	return err
+// }
+
+// // Find leaderboard entry by paymail
+// func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error) {
+// 	row := db.DB.QueryRow(`SELECT id, amount_locked, paymail, public_key, created_at, updated_at FROM leaderboard WHERE paymail=$1`, paymail)
+
+// 	var entry LeaderboardEntry
+// 	if err := row.Scan(&entry.ID, &entry.AmountLocked, &entry.Paymail, &entry.PublicKey, &entry.CreatedAt, &entry.UpdatedAt); err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return nil, nil
+// 		}
+// 		return nil, err
+// 	}
+// 	return &entry, nil
+// }

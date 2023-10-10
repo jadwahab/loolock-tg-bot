@@ -81,32 +81,30 @@ func main() {
 			for _, newUser := range update.Message.NewChatMembers {
 				if newUser.ID == bot.Self.ID { // Bot
 					cmds.WelcomeMessage(config, bot, update)
-					// TODO: loop through admins and challenge
-					/*
-						// Get list of all admins in the chat
-						chatAdminConfig := tgbotapi.ChatAdministratorsConfig{
-							ChatConfig: tgbotapi.ChatConfig{
-								ChatID: update.Message.Chat.ID,
-							},
-						}
+					// Get list of all admins in the chat
+					chatAdminConfig := tgbotapi.ChatAdministratorsConfig{
+						ChatConfig: tgbotapi.ChatConfig{
+							ChatID: update.Message.Chat.ID,
+						},
+					}
 
-						admins, err := bot.GetChatAdministrators(chatAdminConfig)
-						if err != nil {
-							log.Printf("Failed to get chat admins: %s", err)
+					admins, err := bot.GetChatAdministrators(chatAdminConfig)
+					if err != nil {
+						log.Printf("Failed to get chat admins: %s", err)
+						continue
+					}
+
+					// Loop through all admins and send them a challenge
+					for _, admin := range admins {
+						// Skip if the admin is the bot itself
+						if admin.User.ID == bot.Self.ID {
 							continue
 						}
 
-						// Loop through all admins and send them a challenge
-						for _, admin := range admins {
-							// Skip if the admin is the bot itself
-							if admin.User.ID == bot.Self.ID {
-								continue
-							}
+						// Send challenge to the admin
+						cmds.SendNewUserChallenge(config, dbp, *admin.User, bot, update, challengeUserMap)
+					}
 
-							// Send challenge to the admin
-							cmds.SendNewUserChallenge(config, dbp, admin.User, bot, update, challengeUserMap)
-						}
-					*/
 				} else { // Not bot
 					cmds.SendNewUserChallenge(config, dbp, newUser, bot, update, challengeUserMap)
 				}
@@ -136,7 +134,7 @@ func main() {
 				}
 			}
 
-			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) {
+			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
 				cmds.AdminCommand(update.Message.Text, dbp, bot, update)
 				continue
 			}

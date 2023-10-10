@@ -124,12 +124,13 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]*UserChallenge,
 	paymail, sig string) {
 
-	leaderboardEntry, err := dbp.GetEntryByPaymail(paymail)
+	exists, err := dbp.PaymailExists(paymail)
 	if err != nil {
 		log.Printf("Database error while fetching paymail: %v", err)
 		return
+	}
 
-	} else if leaderboardEntry == nil { // paymail not found
+	if !exists { // paymail not found
 		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Your paymail is not on the leaderboard, gtfo"))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
@@ -155,7 +156,7 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 				return
 			}
 
-			if helpers.VerifyBSM(leaderboardEntry.PublicKey, sig, userChallenge.Challenge) { // sig verified
+			if helpers.VerifyBSM(pubkey, sig, userChallenge.Challenge) { // sig verified
 				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, userChallenge.Challenge, pubkey, sig)
 				if err != nil {
 					log.Printf("Failed to update verified user in leaderboard table: %s", err)
