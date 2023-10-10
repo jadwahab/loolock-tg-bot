@@ -11,6 +11,7 @@ type Config struct {
 	KickDuration    int  `yaml:"kickDuration"`
 	ResponseTimeout int  `yaml:"responseTimeout"`
 	BotDebug        bool `yaml:"botDebug"`
+	RefreshPeriod   int  `yaml:"refreshPeriod"`
 }
 
 func LoadConfig(filename string) (Config, error) {

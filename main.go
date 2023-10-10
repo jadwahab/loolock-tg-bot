@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
@@ -52,6 +54,19 @@ func main() {
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
+
+	// Create a ticker and call the refresh function periodically
+	ticker := time.NewTicker(time.Duration(config.RefreshPeriod) * time.Hour)
+	go func() {
+		for range ticker.C {
+			err := helpers.RefreshLeaderboard(dbp)
+			if err != nil {
+				fmt.Println("Error refreshing leaderboard:", err)
+			} else {
+				fmt.Println("Leaderboard refreshed!")
+			}
+		}
+	}()
 
 	for update := range updates {
 		if update.Message == nil {
