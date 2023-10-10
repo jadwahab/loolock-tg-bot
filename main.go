@@ -33,7 +33,7 @@ func main() {
 		log.Fatalf("Error pinging database: %q", err)
 	}
 
-	dbp := db.DBParams{
+	dbp := &db.DBParams{
 		DB: conn,
 	}
 

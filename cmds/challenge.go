@@ -21,7 +21,7 @@ type UserChallenge struct {
 	Attempts  int
 }
 
-func SendNewUserChallenge(cfg config.Config, dbp db.DBParams, newUser tgbotapi.User,
+func SendNewUserChallenge(cfg config.Config, dbp *db.DBParams, newUser tgbotapi.User,
 	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]*UserChallenge) {
 
 	userEntry, err := dbp.GetUserByTelegramUsername(newUser.UserName)
@@ -121,7 +121,7 @@ func generateRandomString(length int) string {
 	return string(randomString)
 }
 
-func HandleChallengeResponse(cfg config.Config, dbp db.DBParams,
+func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 	bot *tgbotapi.BotAPI, update tgbotapi.Update, challengeUserMap map[int64]*UserChallenge,
 	paymail, sig string) {
 

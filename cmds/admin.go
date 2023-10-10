@@ -12,7 +12,7 @@ import (
 	"github.com/tonicpow/go-paymail"
 )
 
-func AdminCommand(cmd string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	commandArgs := strings.Fields(cmd)
 
 	switch commandArgs[0] {
@@ -74,7 +74,7 @@ func AdminCommand(cmd string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 	}
 }
 
-func AddUser(arg1, arg2 string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func AddUser(arg1, arg2 string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	s, err := paymail.ValidateAndSanitisePaymail(arg1, false)
 	if err != nil {
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid paymail."))
