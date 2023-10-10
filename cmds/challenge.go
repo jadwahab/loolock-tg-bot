@@ -145,8 +145,17 @@ func HandleChallengeResponse(cfg config.Config, dbp db.DBParams,
 	} else { // paymail found
 		if userChallenge, exists := challengeUserMap[update.Message.From.ID]; exists {
 
+			pubkey, err := helpers.GetPubKey(paymail)
+			if err != nil {
+				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+				return
+			}
+
 			if helpers.VerifyBSM(leaderboardEntry.PublicKey, sig, userChallenge.Challenge) { // sig verified
-				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, userChallenge.Challenge, sig)
+				err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, userChallenge.Challenge, pubkey, sig)
 				if err != nil {
 					log.Printf("Failed to update verified user in leaderboard table: %s", err)
 				}

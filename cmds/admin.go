@@ -1,15 +1,14 @@
 package cmds
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/db"
+	"github.com/jadwahab/loolock-tg-bot/helpers"
 	"github.com/tonicpow/go-paymail"
 )
 
@@ -48,6 +47,7 @@ func AdminCommand(cmd string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 		}
 
 	case "/refresh":
+		helpers.Refresh(dbp, bot, update)
 
 	default:
 		if strings.HasPrefix(commandArgs[0], "/") {
@@ -79,18 +79,9 @@ func AddUser(arg1, arg2 string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tg
 		return
 	}
 
-	pubkey, err := GetPubKey(paymailAddress)
+	err = dbp.UpsertUser(amountLocked, paymailAddress)
 	if err != nil {
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
-		return
-	}
-
-	err = dbp.UpsertUser(amountLocked, paymailAddress, pubkey)
-	if err != nil {
-		log.Printf("Failed to insert entry with %f, %s, %s: %s", amountLocked, paymailAddress, pubkey, err)
+		log.Printf("Failed to insert entry with %f, %s: %s", amountLocked, paymailAddress, err)
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to add user to DB"))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
@@ -102,30 +93,4 @@ func AddUser(arg1, arg2 string, dbp db.DBParams, bot *tgbotapi.BotAPI, update tg
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
 	}
-}
-
-const pkiBaseURL = "https://relayx.io/bsvalias/id/"
-
-type PKIResponseData struct {
-	BsvAlias string `json:"bsvalias"`
-	Handle   string `json:"handle"`
-	PubKey   string `json:"pubkey"`
-}
-
-func GetPubKey(paymail string) (string, error) { // TODO: get public key for any paymail (not just relayx)
-	resp, err := http.Get(pkiBaseURL + paymail)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch data: %s", resp.Status)
-	}
-
-	data := &PKIResponseData{}
-	if err := json.NewDecoder(resp.Body).Decode(data); err != nil {
-		return "", err
-	}
-	return data.PubKey, nil
 }

@@ -76,9 +76,9 @@ func (db *DBParams) IsPaymailInTop100(paymail string) (bool, error) {
 }
 
 // Update verified user with additional fields
-func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, signature string) error {
-	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, is_verified=$2, challenge=$3, signature=$4, updated_at=$5 WHERE paymail=$6`,
-		telegramUsername, true, challenge, signature, time.Now(), paymail)
+func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pubkey, signature string) error {
+	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, is_verified=$2, challenge=$3, public_key=$4, signature=$5, updated_at=$6 WHERE paymail=$7`,
+		telegramUsername, true, challenge, pubkey, signature, time.Now(), paymail)
 	return err
 }
 
@@ -102,16 +102,16 @@ func (db *DBParams) FindEntryByPaymail(paymail string) (*LeaderboardEntry, error
 	return &entry, nil
 }
 
-func (db *DBParams) UpsertUser(amountLocked float64, paymail, pubkey string) error {
+func (db *DBParams) UpsertUser(amountLocked float64, paymail string) error {
 	// Prepare SQL for upsert
 	sqlStatement := `
-			INSERT INTO leaderboard	(amount_locked, paymail, public_key, created_at, updated_at) 
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO leaderboard	(amount_locked, paymail, created_at, updated_at) 
+			VALUES ($1, $2, $3, $4)
 			ON CONFLICT (paymail)
 			DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
 	`
 
-	_, err := db.DB.Exec(sqlStatement, amountLocked, paymail, pubkey, time.Now(), time.Now())
+	_, err := db.DB.Exec(sqlStatement, amountLocked, paymail, time.Now(), time.Now())
 	if err != nil {
 		return err
 	}
