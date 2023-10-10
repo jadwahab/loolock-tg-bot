@@ -165,6 +165,7 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams,
 				if err != nil {
 					log.Printf("Failed to send message: %s", err)
 				}
+				delete(challengeUserMap, update.Message.From.ID)
 
 			} else {
 				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Incorrect answer. Sign the message: %s", challenge)))
