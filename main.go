@@ -91,6 +91,7 @@ func main() {
 					}
 
 				} else { // Not bot
+					log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
 					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
 					if err != nil {
 						log.Printf("Failed to add user to group table: %s", err)
@@ -110,6 +111,18 @@ func main() {
 		}
 
 		if update.Message != nil {
+
+			// check user exists in group_chat_users table and add if not
+			userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
+			if err != nil {
+				log.Printf("Failed to check if user exists: %s", err)
+			}
+			if !userExists {
+				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+				if err != nil {
+					log.Printf("Failed to add user to group table: %s", err)
+				}
+			}
 
 			if challengeSaved, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
 				challengeInputted, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)

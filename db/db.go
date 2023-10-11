@@ -33,6 +33,7 @@ func (db *DBParams) AddUserToGroupChatDB(chatID int64, userID int64, username st
 		"INSERT INTO group_chat_users (chat_id, user_id, username) VALUES ($1, $2, $3)",
 		chatID, userID, username,
 	)
+	fmt.Printf("Added user %s, %d to chat %d", username, userID, chatID)
 	return err
 }
 
@@ -42,6 +43,19 @@ func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error 
 		chatID, userID,
 	)
 	return err
+}
+
+// Check if user exists in table
+func (db *DBParams) UserExists(chatID int64, userID int64) (bool, error) {
+	var exists bool
+
+	query := `SELECT exists(SELECT 1 FROM group_chat_users WHERE chat_id=$1 AND user_id=$2)`
+	err := db.DB.QueryRow(query, chatID, userID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 type ChatUser struct {
