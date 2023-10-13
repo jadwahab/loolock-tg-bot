@@ -20,7 +20,7 @@ type LeaderboardEntry struct {
 	AmountLocked     float64
 	Paymail          string
 	PublicKey        string
-	TelegramUsername string
+	TelegramUsername sql.NullString
 	IsVerified       bool
 	Challenge        string
 	Signature        string
@@ -89,7 +89,7 @@ func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
 
 // Retrieve top leaderboard entries, ordered by amount locked
 func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(fmt.Sprintf(`SELECT amount_locked, paymail, is_verified FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
+	rows, err := db.DB.Query(fmt.Sprintf(`SELECT amount_locked, paymail, telegram_username, is_verified FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 	var entries []LeaderboardEntry
 	for rows.Next() {
 		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.IsVerified); err != nil {
+		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.IsVerified); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)

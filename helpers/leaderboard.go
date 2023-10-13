@@ -71,8 +71,10 @@ func RefreshLeaderboard(dbp *db.DBParams) error {
 
 func UserExistsInLeaderboard(leaderboard []db.LeaderboardEntry, username string) bool {
 	for _, entry := range leaderboard {
-		if entry.TelegramUsername == username {
-			return true
+		if entry.TelegramUsername.Valid {
+			if entry.TelegramUsername.String == username && entry.IsVerified {
+				return true
+			}
 		}
 	}
 	return false
