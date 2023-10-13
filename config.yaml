@@ -4,3 +4,4 @@ responseTimeout: 10   # Timeout for how many mins to wait with no response befor
 botDebug: false       # Bot send debug messages
 refreshPeriod: 12     # Refresh rate interval (hours)
 groupLink: https://t.me/+z8h0p_22ZA1kMWRk
+top100ChatID: -1001984238822

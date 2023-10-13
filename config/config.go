@@ -13,6 +13,7 @@ type Config struct {
 	BotDebug        bool   `yaml:"botDebug"`
 	RefreshPeriod   int    `yaml:"refreshPeriod"`
 	GroupLink       string `yaml:"groupLink"`
+	Top100ChatID    int64  `yaml:"top100ChatID"`
 }
 
 func LoadConfig(filename string) (Config, error) {

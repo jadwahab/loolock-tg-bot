@@ -62,92 +62,96 @@ func main() {
 			continue
 		}
 
-		if len(update.Message.NewChatMembers) > 0 { // New user(s) join group
-			for _, newUser := range update.Message.NewChatMembers {
+		if update.Message.Chat.ID == config.Top100ChatID { // TOP 100 CHAT
 
-				if newUser.ID == bot.Self.ID { // Bot
-					cmds.WelcomeMessage(config, bot, update)
+			if len(update.Message.NewChatMembers) > 0 { // New user(s) join group
+				for _, newUser := range update.Message.NewChatMembers {
 
-				} else { // Not bot
-					log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
+					if newUser.ID == bot.Self.ID { // Bot
+						cmds.WelcomeMessage(config, bot, update)
+
+					} else { // Not bot
+						log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
+						err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+						if err != nil {
+							log.Printf("Failed to add user to group table: %s", err)
+						}
+
+						// kick if not on leaderboard
+						lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
+						if err != nil {
+							log.Printf("Failed to get leaderboard: %s", err)
+						}
+						exists := helpers.UserExistsInLeaderboard(lbes, newUser.UserName)
+						if !exists && newUser.ID != bot.Self.ID {
+							helpers.KickUser(bot, &helpers.KickArgs{
+								ChatID:       update.Message.Chat.ID,
+								UserID:       newUser.ID,
+								KickDuration: time.Duration(config.KickDuration),
+								UserName:     newUser.UserName,
+								DBP:          dbp,
+							})
+							if err != nil {
+								log.Println("Error kicking member:", err)
+							} else {
+								log.Printf("Kicked %s (%d)\n", newUser.UserName, newUser.ID)
+							}
+						}
+
+					}
+				}
+				continue
+			}
+
+			if update.Message.LeftChatMember != nil { // User leaves group
+				leaver := update.Message.LeftChatMember
+				err := dbp.RemoveUserFromGroupChatDB(update.Message.Chat.ID, leaver.ID)
+				if err != nil {
+					log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
+				}
+			}
+
+			if update.Message != nil {
+
+				// check user exists in group_chat_users table and add if not
+				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
+				if err != nil {
+					log.Printf("Failed to check if user exists: %s", err)
+				}
+				if !userExists {
 					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
 					if err != nil {
 						log.Printf("Failed to add user to group table: %s", err)
 					}
+				}
 
+				if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
+					cmds.AdminCommand(update.Message.Text, dbp, bot, update)
+				} else {
+					user := update.Message.From
 					// kick if not on leaderboard
 					lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
 					if err != nil {
 						log.Printf("Failed to get leaderboard: %s", err)
 					}
-					exists := helpers.UserExistsInLeaderboard(lbes, newUser.UserName)
-					if !exists && newUser.ID != bot.Self.ID {
+					exists := helpers.UserExistsInLeaderboard(lbes, user.UserName)
+					if !exists && user.ID != bot.Self.ID {
 						helpers.KickUser(bot, &helpers.KickArgs{
 							ChatID:       update.Message.Chat.ID,
-							UserID:       newUser.ID,
+							UserID:       user.ID,
 							KickDuration: time.Duration(config.KickDuration),
-							UserName:     newUser.UserName,
+							UserName:     user.UserName,
 							DBP:          dbp,
 						})
 						if err != nil {
 							log.Println("Error kicking member:", err)
 						} else {
-							log.Printf("Kicked %s (%d)\n", newUser.UserName, newUser.ID)
+							log.Printf("Kicked %s (%d)\n", user.UserName, user.ID)
 						}
 					}
-
 				}
 			}
 			continue
-		}
-
-		if update.Message.LeftChatMember != nil { // User leaves group
-			leaver := update.Message.LeftChatMember
-			err := dbp.RemoveUserFromGroupChatDB(update.Message.Chat.ID, leaver.ID)
-			if err != nil {
-				log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
-			}
-		}
-
-		if update.Message != nil {
-
-			// check user exists in group_chat_users table and add if not
-			userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
-			if err != nil {
-				log.Printf("Failed to check if user exists: %s", err)
-			}
-			if !userExists {
-				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
-				if err != nil {
-					log.Printf("Failed to add user to group table: %s", err)
-				}
-			}
-
-			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
-				cmds.AdminCommand(update.Message.Text, dbp, bot, update)
-			} else {
-				user := update.Message.From
-				// kick if not on leaderboard
-				lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
-				if err != nil {
-					log.Printf("Failed to get leaderboard: %s", err)
-				}
-				exists := helpers.UserExistsInLeaderboard(lbes, user.UserName)
-				if !exists && user.ID != bot.Self.ID {
-					helpers.KickUser(bot, &helpers.KickArgs{
-						ChatID:       update.Message.Chat.ID,
-						UserID:       user.ID,
-						KickDuration: time.Duration(config.KickDuration),
-						UserName:     user.UserName,
-						DBP:          dbp,
-					})
-					if err != nil {
-						log.Println("Error kicking member:", err)
-					} else {
-						log.Printf("Kicked %s (%d)\n", user.UserName, user.ID)
-					}
-				}
-			}
 		}
 
 	}
