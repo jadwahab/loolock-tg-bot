@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -41,10 +40,6 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 		log.Printf("Failed to unban user: %s", err)
 	}
 
-	_, err = bot.Send(tgbotapi.NewMessage(ka.ChatID, fmt.Sprintf("@%s has just been kicked...", ka.UserName)))
-	if err != nil {
-		log.Printf("Failed to send message: %s", err)
-	}
 	err = ka.DBP.RemoveUserFromGroupChatDB(ka.ChatID, ka.UserID)
 	if err != nil {
 		log.Printf("Failed to remove user from group chat DB: %s", err)
