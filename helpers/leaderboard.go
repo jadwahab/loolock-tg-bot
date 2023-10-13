@@ -11,10 +11,10 @@ import (
 )
 
 func Refresh(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64) error {
-	// err := RefreshLeaderboard(dbp)
-	// if err != nil {
-	// 	return err
-	// }
+	err := RefreshLeaderboard(dbp)
+	if err != nil {
+		return err
+	}
 
 	lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
 	if err != nil {

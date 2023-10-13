@@ -59,6 +59,7 @@ func HandleChallengeResponse(dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)
 			}
+			log.Printf("Successfully verified user : %s, %d", update.Message.From.UserName, update.Message.From.ID)
 
 		} else {
 			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid signature."))

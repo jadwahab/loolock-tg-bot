@@ -40,8 +40,8 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 		log.Printf("Failed to unban user: %s", err)
 	}
 
-	err = ka.DBP.RemoveUserFromGroupChatDB(ka.ChatID, ka.UserID)
-	if err != nil {
-		log.Printf("Failed to remove user from group chat DB: %s", err)
-	}
+	// err = ka.DBP.RemoveUserFromGroupChatDB(ka.ChatID, ka.UserID)
+	// if err != nil {
+	// 	log.Printf("Failed to remove user from group chat DB: %s", err)
+	// }
 }
