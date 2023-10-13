@@ -1,7 +1,6 @@
 package cmds
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -28,39 +27,7 @@ func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgb
 		}
 
 	case "/leaderboard":
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Fetching and updating leaderboard..."))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
-		err = helpers.RefreshLeaderboard(dbp)
-		if err != nil {
-			log.Println(err.Error())
-			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from API"))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-			return
-		}
-
-		leaderboard, err := dbp.GetLeaderboard(100)
-		if err != nil {
-			log.Println(err.Error())
-			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-			return
-		}
-
-		var sb strings.Builder
-		for i, user := range leaderboard {
-			sb.WriteString(fmt.Sprintf("%d- %s - %f\n", i+1, user.Paymail, user.AmountLocked))
-		}
-		resultString := sb.String()
-		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, resultString))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
+		PrintLeaderboard(dbp, bot, update.Message.Chat.ID)
 
 	case "/refresh":
 		helpers.Refresh(config.Config{KickDuration: 0}, dbp, bot, update.Message.Chat.ID)

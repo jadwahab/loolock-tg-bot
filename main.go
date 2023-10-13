@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
@@ -57,54 +58,7 @@ func main() {
 		}
 
 		if update.Message.Chat.IsPrivate() {
-
-			challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
-			if update.Message.Text != "" && valid {
-				// If challenge is valid, send them the group link
-				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You're validated! Join the group by clicking [here](GROUP_LINK_HERE)"))
-				if err != nil {
-					log.Printf("Failed to send message: %s", err)
-				}
-
-				cmds.HandleChallengeResponse(dbp, bot, update, challenge, paymail, sig)
-			}
-
-			switch update.Message.Text {
-
-			case "/verify":
-				userEntry, err := dbp.GetUserByTelegramUsername(update.Message.From.UserName)
-				if err != nil {
-					log.Printf("Database error while fetching user: %v", err)
-				} else if userEntry != nil { // user found in db
-					// fmt.Println("Found entry:", userEntry.TelegramUsername)
-					if userEntry.IsVerified {
-						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You are already verified!"))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
-						continue
-					}
-				}
-				cmds.SendNewUserChallenge(*update.Message.From, bot, update.Message.Chat.ID)
-
-			case "/top100":
-				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-					fmt.Sprintf("After you have verified yourself using the /verify command, "+
-						"join the group by clicking here: %s", config.GroupLink)))
-				if err != nil {
-					log.Printf("Failed to send message: %s", err)
-				}
-
-			default:
-				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-					"Invalid command. Use /verify or /top100\n\n"+
-						"/verify - Verify your identity\n"+
-						"/top100 - Get access to the TOP 100 lockers group"))
-				if err != nil {
-					log.Printf("Failed to send message: %s", err)
-				}
-			}
-
+			cmds.HandleDMs(config, dbp, bot, update)
 			continue
 		}
 
@@ -121,7 +75,26 @@ func main() {
 						log.Printf("Failed to add user to group table: %s", err)
 					}
 
-					// TODO: check if user is verified else kick them
+					// kick if not on leaderboard
+					lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
+					if err != nil {
+						log.Printf("Failed to get leaderboard: %s", err)
+					}
+					exists := helpers.UserExistsInLeaderboard(lbes, newUser.UserName)
+					if !exists && newUser.ID != bot.Self.ID {
+						helpers.KickUser(bot, &helpers.KickArgs{
+							ChatID:       update.Message.Chat.ID,
+							UserID:       newUser.ID,
+							KickDuration: time.Duration(config.KickDuration),
+							UserName:     newUser.UserName,
+							DBP:          dbp,
+						})
+						if err != nil {
+							log.Println("Error kicking member:", err)
+						} else {
+							log.Printf("Kicked %s (%d)\n", newUser.UserName, newUser.ID)
+						}
+					}
 
 				}
 			}
@@ -152,24 +125,44 @@ func main() {
 
 			if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
 				cmds.AdminCommand(update.Message.Text, dbp, bot, update)
-				continue
+			} else {
+				user := update.Message.From
+				// kick if not on leaderboard
+				lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
+				if err != nil {
+					log.Printf("Failed to get leaderboard: %s", err)
+				}
+				exists := helpers.UserExistsInLeaderboard(lbes, user.UserName)
+				if !exists && user.ID != bot.Self.ID {
+					helpers.KickUser(bot, &helpers.KickArgs{
+						ChatID:       update.Message.Chat.ID,
+						UserID:       user.ID,
+						KickDuration: time.Duration(config.KickDuration),
+						UserName:     user.UserName,
+						DBP:          dbp,
+					})
+					if err != nil {
+						log.Println("Error kicking member:", err)
+					} else {
+						log.Printf("Kicked %s (%d)\n", user.UserName, user.ID)
+					}
+				}
 			}
 		}
 
 	}
 
-	// TODO: fix periodic refresh
-	// // Create a ticker and call the refresh function periodically
-	// ticker := time.NewTicker(time.Duration(config.RefreshPeriod) * time.Hour)
-	// go func() {
-	// 	for range ticker.C {
-	// 		err := helpers.Refresh(config, dbp, bot)
-	// 		if err != nil {
-	// 			fmt.Println("Error refreshing leaderboard:", err)
-	// 		} else {
-	// 			fmt.Println("Leaderboard refreshed!")
-	// 		}
-	// 	}
-	// }()
+	// Create a ticker and call the refresh function periodically
+	ticker := time.NewTicker(time.Duration(config.RefreshPeriod) * time.Hour)
+	go func() {
+		for range ticker.C {
+			err := helpers.RefreshLeaderboard(dbp)
+			if err != nil {
+				fmt.Println("Error refreshing leaderboard:", err)
+			} else {
+				fmt.Println("Leaderboard refreshed!")
+			}
+		}
+	}()
 
 }
