@@ -20,7 +20,7 @@ type BitcoinersResponse struct {
 
 const LeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners"
 
-func GetTop100Bitcoiners() ([]Bitcoiner, error) {
+func GetBitcoiners() ([]Bitcoiner, error) {
 	resp, err := http.Get(LeaderboardAPIEndpoint)
 	if err != nil {
 		return nil, err
@@ -37,12 +37,7 @@ func GetTop100Bitcoiners() ([]Bitcoiner, error) {
 		return nil, err
 	}
 
-	bitcoiners := response.Bitcoiners
-	if len(bitcoiners) > 100 {
-		bitcoiners = bitcoiners[:100]
-	}
-
-	return bitcoiners, nil
+	return response.Bitcoiners, nil
 }
 
 const pkiBaseURL = "https://relayx.io/bsvalias/id/"

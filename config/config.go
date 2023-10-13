@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	AdminTimeout    int  `yaml:"adminTimeout"`
-	KickDuration    int  `yaml:"kickDuration"`
-	ResponseTimeout int  `yaml:"responseTimeout"`
-	BotDebug        bool `yaml:"botDebug"`
-	RefreshPeriod   int  `yaml:"refreshPeriod"`
+	AdminTimeout    int    `yaml:"adminTimeout"`
+	KickDuration    int    `yaml:"kickDuration"`
+	ResponseTimeout int    `yaml:"responseTimeout"`
+	BotDebug        bool   `yaml:"botDebug"`
+	RefreshPeriod   int    `yaml:"refreshPeriod"`
+	GroupLink       string `yaml:"groupLink"`
 }
 
 func LoadConfig(filename string) (Config, error) {

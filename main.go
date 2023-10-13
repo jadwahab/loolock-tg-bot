@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
@@ -12,9 +13,6 @@ import (
 	"github.com/jadwahab/loolock-tg-bot/helpers"
 	_ "github.com/lib/pq"
 )
-
-// Keeps track of user ID and their challenge string
-var challengeUserMap = make(map[int64]string)
 
 func main() {
 	config, err := config.LoadConfig("config.yaml")
@@ -58,37 +56,63 @@ func main() {
 			continue
 		}
 
-		if update.Message.Chat.IsPrivate() { // Skip private chats
+		if update.Message.Chat.IsPrivate() {
+
+			challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
+			if update.Message.Text != "" && valid {
+				// If challenge is valid, send them the group link
+				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You're validated! Join the group by clicking [here](GROUP_LINK_HERE)"))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+
+				cmds.HandleChallengeResponse(dbp, bot, update, challenge, paymail, sig)
+			}
+
+			switch update.Message.Text {
+
+			case "/verify":
+				userEntry, err := dbp.GetUserByTelegramUsername(update.Message.From.UserName)
+				if err != nil {
+					log.Printf("Database error while fetching user: %v", err)
+				} else if userEntry != nil { // user found in db
+					// fmt.Println("Found entry:", userEntry.TelegramUsername)
+					if userEntry.IsVerified {
+						_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You are already verified!"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
+						continue
+					}
+				}
+				cmds.SendNewUserChallenge(*update.Message.From, bot, update.Message.Chat.ID)
+
+			case "/top100":
+				_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+					fmt.Sprintf("After you have verified yourself using the /verify command, "+
+						"join the group by clicking here: %s", config.GroupLink)))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+
+			default:
+				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+					"Invalid command. Use /verify or /top100\n\n"+
+						"/verify - Verify your identity\n"+
+						"/top100 - Get access to the TOP 100 lockers group"))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+			}
+
 			continue
 		}
 
 		if len(update.Message.NewChatMembers) > 0 { // New user(s) join group
 			for _, newUser := range update.Message.NewChatMembers {
+
 				if newUser.ID == bot.Self.ID { // Bot
 					cmds.WelcomeMessage(config, bot, update)
-					// Get list of all admins in the chat
-					chatAdminConfig := tgbotapi.ChatAdministratorsConfig{
-						ChatConfig: tgbotapi.ChatConfig{
-							ChatID: update.Message.Chat.ID,
-						},
-					}
-
-					admins, err := bot.GetChatAdministrators(chatAdminConfig)
-					if err != nil {
-						log.Printf("Failed to get chat admins: %s", err)
-						continue
-					}
-
-					// Loop through all admins and send them a challenge
-					for _, admin := range admins {
-						// Skip if the admin is the bot itself
-						if admin.User.ID == bot.Self.ID {
-							continue
-						}
-
-						// Send challenge to the admin
-						cmds.SendNewUserChallenge(config, dbp, *admin.User, bot, update, challengeUserMap)
-					}
 
 				} else { // Not bot
 					log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
@@ -96,7 +120,9 @@ func main() {
 					if err != nil {
 						log.Printf("Failed to add user to group table: %s", err)
 					}
-					cmds.SendNewUserChallenge(config, dbp, newUser, bot, update, challengeUserMap)
+
+					// TODO: check if user is verified else kick them
+
 				}
 			}
 			continue
@@ -121,25 +147,6 @@ func main() {
 				err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
 				if err != nil {
 					log.Printf("Failed to add user to group table: %s", err)
-				}
-			}
-
-			if challengeSaved, exists := challengeUserMap[update.Message.From.ID]; exists { // User sent challenge response
-				challengeInputted, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
-				if update.Message.Text != "" && valid {
-					if challengeInputted != challengeSaved {
-						_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Please sign this message: "+challengeSaved))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
-					} else {
-						cmds.HandleChallengeResponse(config, dbp, bot, update, challengeUserMap, paymail, sig)
-					}
-				} else {
-					_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid format, try again."))
-					if err != nil {
-						log.Printf("Failed to send message: %s", err)
-					}
 				}
 			}
 

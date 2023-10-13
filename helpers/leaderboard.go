@@ -16,7 +16,7 @@ func Refresh(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID i
 		return err
 	}
 
-	lbes, err := dbp.GetLeaderboard()
+	lbes, err := dbp.GetLeaderboard(100) // TODO: top 100 for now
 	if err != nil {
 		return err
 	}
@@ -61,12 +61,12 @@ func Refresh(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID i
 }
 
 func RefreshLeaderboard(dbp *db.DBParams) error {
-	top100, err := apis.GetTop100Bitcoiners()
+	bitcoiners, err := apis.GetBitcoiners()
 	if err != nil {
 		return err
 	}
 
-	return dbp.BatchUpsert(top100)
+	return dbp.BatchUpsert(bitcoiners)
 }
 
 func UserExistsInLeaderboard(leaderboard []db.LeaderboardEntry, username string) bool {

@@ -87,9 +87,9 @@ func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
 	return users, nil
 }
 
-// Retrieve top 100 leaderboard entries, ordered by amount locked
-func (db *DBParams) GetLeaderboard() ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(`SELECT id, amount_locked, paymail, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`)
+// Retrieve top leaderboard entries, ordered by amount locked
+func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
+	rows, err := db.DB.Query(fmt.Sprintf(`SELECT id, amount_locked, paymail, created_at, updated_at FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
 	if err != nil {
 		return nil, err
 	}

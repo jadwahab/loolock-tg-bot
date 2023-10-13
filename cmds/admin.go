@@ -42,7 +42,7 @@ func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgb
 			return
 		}
 
-		leaderboard, err := dbp.GetLeaderboard()
+		leaderboard, err := dbp.GetLeaderboard(100)
 		if err != nil {
 			log.Println(err.Error())
 			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting leaderboard from DB"))
