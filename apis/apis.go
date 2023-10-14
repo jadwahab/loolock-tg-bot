@@ -15,7 +15,7 @@ type Bitcoiner struct {
 }
 
 type BitcoinersResponse struct {
-	Bitcoiners []Bitcoiner `json:"bitcoiners"`
+	Bitcoiners []Bitcoiner `json:"rankedBitcoiners"`
 }
 
 const LeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners"

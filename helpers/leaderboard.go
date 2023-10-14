@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -64,6 +65,10 @@ func RefreshLeaderboard(dbp *db.DBParams) error {
 	bitcoiners, err := apis.GetBitcoiners()
 	if err != nil {
 		return err
+	}
+
+	if len(bitcoiners) != 100 {
+		return errors.New("error getting enough bitcoiners from API")
 	}
 
 	return dbp.BatchUpsert(bitcoiners)
