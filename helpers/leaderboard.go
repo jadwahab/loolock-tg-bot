@@ -67,7 +67,7 @@ func RefreshLeaderboard(dbp *db.DBParams) error {
 		return err
 	}
 
-	if len(bitcoiners) != 100 {
+	if len(bitcoiners) == 0 {
 		return errors.New("error getting enough bitcoiners from API")
 	}
 
