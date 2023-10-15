@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
-	"github.com/jadwahab/loolock-tg-bot/helpers"
 	"github.com/tonicpow/go-paymail"
 )
 
@@ -16,25 +14,13 @@ func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgb
 	commandArgs := strings.Fields(cmd)
 
 	switch commandArgs[0] {
-	case "/adduser":
-		if len(commandArgs) == 3 {
-			AddUser(commandArgs[1], commandArgs[2], dbp, bot, update)
-		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid /adduser format. Use /adduser <paymail> <amount>."))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-		}
-
 	case "/leaderboard":
-		PrintLeaderboard(dbp, bot, update.Message.Chat.ID)
-
-	case "/refresh":
-		helpers.Refresh(config.Config{KickDuration: 0}, dbp, bot, update.Message.Chat.ID)
+		const lbLimit = 100
+		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
 
 	default:
 		if strings.HasPrefix(commandArgs[0], "/") {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /adduser or /leaderboard or /refresh"))
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid command. Use /leaderboard"))
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)
 			}

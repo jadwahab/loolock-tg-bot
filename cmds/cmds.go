@@ -12,7 +12,6 @@ import (
 func WelcomeMessage(cfg config.Config, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	messages := []string{
 		"gm ELITES",
-		"Only top 100 LooLockers are allowed.",
 		fmt.Sprintf("You have %d min to make me group admin or else I will leave.", int(cfg.AdminTimeout)),
 	}
 	for _, messageText := range messages {

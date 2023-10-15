@@ -15,7 +15,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	if update.Message.Text != "" && valid {
 		// If challenge is valid, send them the group link
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("You're validated! Join the group by clicking %s", cfg.GroupLink)))
+			fmt.Sprintf("You're validated! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
@@ -44,19 +44,21 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	case "/top100":
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
 			fmt.Sprintf("After you have verified yourself using the /verify command, "+
-				"join the group by clicking here: %s", cfg.GroupLink)))
+				"join the group by clicking here: %s", cfg.Groups[config.Top100].Link)))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
 
 	case "/leaderboard":
-		PrintLeaderboard(dbp, bot, update.Message.Chat.ID)
+		const lbLimit = 100
+		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
 
 	default:
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Invalid command. Use /verify or /top100\n\n"+
+			"Invalid command. Use /verify or /top or /leaderboard\n\n"+
 				"/verify - Verify your identity\n"+
-				"/top100 - Get access to the TOP 100 lockers group"))
+				"/top100 - Get access to the TOP 100 lockers group\n"+
+				"/leaderboard - Get the TOP 100 leaderboard"))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}

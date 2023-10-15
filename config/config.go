@@ -7,13 +7,25 @@ import (
 )
 
 type Config struct {
-	AdminTimeout    int    `yaml:"adminTimeout"`
-	KickDuration    int    `yaml:"kickDuration"`
-	ResponseTimeout int    `yaml:"responseTimeout"`
-	BotDebug        bool   `yaml:"botDebug"`
-	RefreshPeriod   int    `yaml:"refreshPeriod"`
-	GroupLink       string `yaml:"groupLink"`
-	Top100ChatID    int64  `yaml:"top100ChatID"`
+	AdminTimeout    int                   `yaml:"adminTimeout"`
+	KickDuration    int                   `yaml:"kickDuration"`
+	ResponseTimeout int                   `yaml:"responseTimeout"`
+	BotDebug        bool                  `yaml:"botDebug"`
+	RefreshPeriod   int                   `yaml:"refreshPeriod"`
+	Groups          map[GroupType]TGGroup `yaml:"groups"`
+}
+
+type GroupType string
+
+const (
+	Top100      GroupType = "top100"
+	OneCoinClub GroupType = "1coinclub"
+	Lockers     GroupType = "lockers"
+)
+
+type TGGroup struct {
+	Link   string `yaml:"link"`
+	ChatID int64  `yaml:"chatID"`
 }
 
 func LoadConfig(filename string) (Config, error) {

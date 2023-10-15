@@ -3,5 +3,7 @@ kickDuration: 0       # Duration of how many hours a user is banned from group a
 responseTimeout: 10   # Timeout for how many mins to wait with no response before kicking
 botDebug: false       # Bot send debug messages
 refreshPeriod: 12     # Refresh rate interval (hours)
-groupLink: https://t.me/+tHaVsa1DwIxmYTE0
-top100ChatID: -1001984238822
+groups:
+  top100:
+    link: "https://t.me/+tHaVsa1DwIxmYTE0"
+    chatID: -1001984238822

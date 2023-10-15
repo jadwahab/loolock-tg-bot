@@ -10,7 +10,7 @@ import (
 	"github.com/jadwahab/loolock-tg-bot/helpers"
 )
 
-func PrintLeaderboard(dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64) {
+func PrintLeaderboard(dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64, lbLimit int) {
 	_, err := bot.Send(tgbotapi.NewMessage(chatID, "Fetching and updating leaderboard..."))
 	if err != nil {
 		log.Printf("Failed to send message: %s", err)
@@ -25,7 +25,7 @@ func PrintLeaderboard(dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64) {
 		return
 	}
 
-	leaderboard, err := dbp.GetLeaderboard(100)
+	leaderboard, err := dbp.GetLeaderboard(lbLimit)
 	if err != nil {
 		log.Println(err.Error())
 		_, err = bot.Send(tgbotapi.NewMessage(chatID, "Error getting leaderboard from DB"))

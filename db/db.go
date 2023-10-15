@@ -107,22 +107,6 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 	return entries, nil
 }
 
-// Check if a specific paymail is in the top 100
-func (db *DBParams) IsPaymailInTop100(paymail string) (bool, error) {
-	// Construct a subquery to get the top 100 paymails
-	subquery := `SELECT paymail FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`
-
-	// Use the subquery to directly check if the specific paymail is in the top 100
-	query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM (%s) AS sub WHERE paymail = $1)`, subquery)
-
-	var exists bool
-	err := db.DB.QueryRow(query, paymail).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
-}
-
 // Update verified user with additional fields
 func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pubkey, signature string) error {
 	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, is_verified=$2, challenge=$3, public_key=$4, signature=$5, updated_at=$6 WHERE paymail=$7`,
@@ -267,4 +251,20 @@ func (db *DBParams) PaymailExists(paymail string) (bool, error) {
 // 		return nil, err
 // 	}
 // 	return &entry, nil
+// }
+
+// // Check if a specific paymail is in the top 100
+// func (db *DBParams) IsPaymailInTop100(paymail string) (bool, error) {
+// 	// Construct a subquery to get the top 100 paymails
+// 	subquery := `SELECT paymail FROM leaderboard ORDER BY amount_locked DESC LIMIT 100`
+
+// 	// Use the subquery to directly check if the specific paymail is in the top 100
+// 	query := fmt.Sprintf(`SELECT EXISTS (SELECT 1 FROM (%s) AS sub WHERE paymail = $1)`, subquery)
+
+// 	var exists bool
+// 	err := db.DB.QueryRow(query, paymail).Scan(&exists)
+// 	if err != nil {
+// 		return false, err
+// 	}
+// 	return exists, nil
 // }
