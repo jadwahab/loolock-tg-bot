@@ -15,6 +15,7 @@ type DBParams struct {
 	DB *sql.DB
 }
 
+// TODO: handle sql null strings
 type LeaderboardEntry struct {
 	ID               int64
 	AmountLocked     float64
@@ -162,11 +163,10 @@ func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
 
 	sqlStatement := `
 		INSERT INTO leaderboard (amount_locked, paymail, created_at, updated_at) 
-		VALUES %s
+		VALUES ` + strings.Join(valueStrings, ",") + `
 		ON CONFLICT (paymail)
 		DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
 	`
-	sqlStatement = fmt.Sprintf(sqlStatement, strings.Join(valueStrings, ","))
 	_, err := db.DB.Exec(sqlStatement, valueArgs...)
 	if err != nil {
 		return err
