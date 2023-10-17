@@ -17,12 +17,12 @@ type KickArgs struct {
 }
 
 func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
-	_, err := bot.Request(tgbotapi.KickChatMemberConfig{
+	_, err := bot.Request(tgbotapi.BanChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: ka.ChatID,
 			UserID: ka.UserID,
 		},
-		UntilDate: int64(time.Now().Add(ka.KickDuration).Unix()),
+		UntilDate: int64(time.Now().Add(time.Duration(ka.KickDuration) * time.Minute).Unix()),
 	})
 	if err != nil {
 		log.Printf("Failed to kick user: %s", err)
@@ -35,6 +35,7 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 			ChatID: ka.ChatID,
 			UserID: ka.UserID,
 		},
+		OnlyIfBanned: true,
 	})
 	if err != nil {
 		log.Printf("Failed to unban user: %s", err)
