@@ -26,7 +26,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	switch update.Message.Text {
 
 	case "/verify":
-		userEntry, err := dbp.GetUserByTelegramUsername(update.Message.From.UserName)
+		userEntry, err := dbp.GetUserByTelegramID(update.Message.From.ID)
 		if err != nil {
 			log.Printf("Database error while fetching user: %v", err)
 		} else if userEntry != nil { // user found in db

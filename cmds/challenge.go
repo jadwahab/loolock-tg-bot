@@ -51,7 +51,7 @@ func HandleChallengeResponse(dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 		}
 
 		if helpers.VerifyBSM(pubkey, sig, challenge) { // sig verified
-			err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig)
+			err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig, update.Message.From.ID)
 			if err != nil {
 				log.Printf("Failed to update verified user in leaderboard table: %s", err)
 			}

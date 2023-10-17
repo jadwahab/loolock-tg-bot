@@ -11,6 +11,8 @@ import (
 	"github.com/tonicpow/go-paymail"
 )
 
+// TODO: separate db files for leaderboard and for chat db
+
 type DBParams struct {
 	DB *sql.DB
 }
@@ -22,6 +24,7 @@ type LeaderboardEntry struct {
 	Paymail          string
 	PublicKey        string
 	TelegramUsername sql.NullString
+	TelegramID       int64
 	IsVerified       bool
 	Challenge        string
 	Signature        string
@@ -108,9 +111,9 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 }
 
 // Update verified user with additional fields
-func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pubkey, signature string) error {
-	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, is_verified=$2, challenge=$3, public_key=$4, signature=$5, updated_at=$6 WHERE paymail=$7`,
-		telegramUsername, true, challenge, pubkey, signature, time.Now(), paymail)
+func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pubkey, signature string, telegram_id int64) error {
+	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, telegram_id=$2, is_verified=$3, challenge=$4, public_key=$5, signature=$6, updated_at=$7 WHERE paymail=$8`,
+		telegramUsername, telegram_id, true, challenge, pubkey, signature, time.Now(), paymail)
 	return err
 }
 
@@ -162,6 +165,17 @@ func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
 func (db *DBParams) GetUserByTelegramUsername(username string) (*LeaderboardEntry, error) {
 	var user LeaderboardEntry
 	if err := db.DB.QueryRow("SELECT id, amount_locked, paymail, is_verified FROM leaderboard WHERE telegram_username = $1", username).Scan(&user.ID, &user.AmountLocked, &user.Paymail, &user.IsVerified); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (db *DBParams) GetUserByTelegramID(id int64) (*LeaderboardEntry, error) {
+	var user LeaderboardEntry
+	if err := db.DB.QueryRow("SELECT id, amount_locked, paymail, is_verified FROM leaderboard WHERE telegram_id = $1", id).Scan(&user.ID, &user.AmountLocked, &user.Paymail, &user.IsVerified); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
