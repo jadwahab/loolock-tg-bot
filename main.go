@@ -105,7 +105,7 @@ func main() {
 				if err != nil {
 					log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
 				}
-				log.Printf("User left the group with ID: %d, UserNameL %s", leaver.ID, leaver.UserName)
+				log.Printf("User left the group with ID: %d, UserName: %s", leaver.ID, leaver.UserName)
 			}
 
 			if update.Message != nil {
