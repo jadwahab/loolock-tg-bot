@@ -92,11 +92,6 @@ func main() {
 								UserName:     newUser.UserName,
 								DBP:          dbp,
 							})
-							if err != nil {
-								log.Println("Error kicking member:", err)
-							} else {
-								log.Printf("Kicked %s (%d)\n", newUser.UserName, newUser.ID)
-							}
 						}
 
 					}
@@ -147,11 +142,6 @@ func main() {
 							UserName:     user.UserName,
 							DBP:          dbp,
 						})
-						if err != nil {
-							log.Println("Error kicking member:", err)
-						} else {
-							log.Printf("Kicked %s (%d)\n", user.UserName, user.ID)
-						}
 					}
 				}
 			}

@@ -27,6 +27,8 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 	if err != nil {
 		log.Printf("Failed to kick user: %s", err)
 		return
+	} else {
+		log.Printf("Kicked %s (%d)\n", ka.UserName, ka.UserID)
 	}
 
 	// Immediately unban the user after kicking

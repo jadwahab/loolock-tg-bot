@@ -80,11 +80,6 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 					UserName:     user.UserName,
 					DBP:          dbp,
 				})
-				if err != nil {
-					log.Println("Error kicking member:", err)
-				} else {
-					log.Printf("Kicked %s (%d)\n", user.UserName, user.UserID)
-				}
 			}
 		}
 
