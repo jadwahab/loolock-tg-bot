@@ -13,7 +13,7 @@ import (
 const signingBitcomPrefix = "17DqbMhfHzLGjYqmiLAjhzAzKf3f1sK9Rc" // whitelisted on https://relayauth.libsv.dev
 
 func SendNewUserChallenge(newUser tgbotapi.User, bot *tgbotapi.BotAPI, chatID int64) {
-	challenge := signingBitcomPrefix + "|@" + newUser.UserName + "|" + fmt.Sprintf("%d", newUser.ID) + "|" + fmt.Sprintf("%d", chatID)
+	challenge := signingBitcomPrefix + "|@" + newUser.UserName + "|" + fmt.Sprintf("%d", newUser.ID)
 
 	_, err := bot.Send(tgbotapi.NewMessage(chatID, fmt.Sprintf(
 		"You must verify a link between your telegram username and your onchain identity (currently RelayX handle).\n\n"+
