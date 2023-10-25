@@ -12,6 +12,8 @@ import (
 )
 
 func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	log.Printf("Received DM from [%s:%d] %s", update.Message.From.UserName, update.Message.From.ID, update.Message.Text)
+
 	challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 	if update.Message.Text != "" && valid {
 		// If challenge is valid, send them the group link
