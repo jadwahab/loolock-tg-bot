@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	"log"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/config"
@@ -52,6 +53,40 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	case "/leaderboard":
 		const lbLimit = 100
 		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
+
+	case "/kickintruders":
+		const top100ChatID = -1001984238822
+		users, err := dbp.GetUniqueUsers(top100ChatID)
+		if err != nil {
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to fetch users from database"))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+		}
+		lbes, err := dbp.GetValidLeaderboard()
+		if err != nil {
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to get leaderboard"))
+			if err != nil {
+				log.Printf("Failed to get leaderboard: %s", err)
+			}
+		}
+		for _, user := range users {
+			exists := helpers.UserExistsInLeaderboard(lbes, user.UserID)
+			if !exists && user.UserID != bot.Self.ID {
+				helpers.KickUser(bot, &helpers.KickArgs{
+					ChatID:       update.Message.Chat.ID,
+					UserID:       user.UserID,
+					KickDuration: time.Duration(cfg.KickDuration),
+					UserName:     user.UserName,
+					DBP:          dbp,
+				})
+				if err != nil {
+					log.Println("Error kicking member:", err)
+				} else {
+					log.Printf("Kicked %s (%d)\n", user.UserName, user.UserID)
+				}
+			}
+		}
 
 	default:
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
