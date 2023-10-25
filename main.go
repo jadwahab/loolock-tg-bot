@@ -113,6 +113,8 @@ func main() {
 			}
 
 			if update.Message != nil {
+				log.Printf("Message from %d, %s", update.Message.From.ID, update.Message.From.UserName)
+				log.Println(update.Message.Text)
 
 				// check user exists in group_chat_users table and add if not
 				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
