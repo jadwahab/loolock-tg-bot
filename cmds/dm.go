@@ -74,7 +74,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 			exists := helpers.UserExistsInLeaderboard(lbes, user.UserID)
 			if !exists && user.UserID != bot.Self.ID {
 				helpers.KickUser(bot, &helpers.KickArgs{
-					ChatID:       update.Message.Chat.ID,
+					ChatID:       top100ChatID,
 					UserID:       user.UserID,
 					KickDuration: time.Duration(cfg.KickDuration),
 					UserName:     user.UserName,
