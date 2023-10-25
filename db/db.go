@@ -110,6 +110,24 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 	return entries, nil
 }
 
+func (db *DBParams) GetValidLeaderboard() ([]LeaderboardEntry, error) {
+	rows, err := db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []LeaderboardEntry
+	for rows.Next() {
+		var entry LeaderboardEntry
+		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
+}
+
 // Update verified user with additional fields
 func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pubkey, signature string, telegram_id int64) error {
 	_, err := db.DB.Exec(`UPDATE leaderboard SET telegram_username=$1, telegram_id=$2, is_verified=$3, challenge=$4, public_key=$5, signature=$6, updated_at=$7 WHERE paymail=$8`,

@@ -20,12 +20,10 @@ func RefreshLeaderboard(dbp *db.DBParams) error {
 	return dbp.BatchUpsert(bitcoiners)
 }
 
-func UserExistsInLeaderboard(leaderboard []db.LeaderboardEntry, username string) bool {
+func UserExistsInLeaderboard(leaderboard []db.LeaderboardEntry, userID int64) bool {
 	for _, entry := range leaderboard {
-		if entry.TelegramUsername.Valid {
-			if entry.TelegramUsername.String == username && entry.IsVerified {
-				return true
-			}
+		if entry.TelegramID == userID {
+			return true
 		}
 	}
 	return false

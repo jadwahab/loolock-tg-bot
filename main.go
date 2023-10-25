@@ -79,11 +79,11 @@ func main() {
 						}
 
 						// kick if not on leaderboard
-						lbes, err := dbp.GetLeaderboard(lbLimit)
+						lbes, err := dbp.GetValidLeaderboard()
 						if err != nil {
 							log.Printf("Failed to get leaderboard: %s", err)
 						}
-						exists := helpers.UserExistsInLeaderboard(lbes, newUser.UserName)
+						exists := helpers.UserExistsInLeaderboard(lbes, newUser.ID)
 						if !exists && newUser.ID != bot.Self.ID {
 							helpers.KickUser(bot, &helpers.KickArgs{
 								ChatID:       update.Message.Chat.ID,
@@ -110,10 +110,12 @@ func main() {
 				if err != nil {
 					log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
 				}
+				log.Printf("User left the group with ID: %d, UserNameL %s", leaver.ID, leaver.UserName)
 			}
 
 			if update.Message != nil {
 				log.Printf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text)
+				log.Println(update.Message)
 
 				// check user exists in group_chat_users table and add if not
 				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
@@ -132,11 +134,11 @@ func main() {
 				} else {
 					user := update.Message.From
 					// kick if not on leaderboard
-					lbes, err := dbp.GetLeaderboard(lbLimit)
+					lbes, err := dbp.GetValidLeaderboard()
 					if err != nil {
 						log.Printf("Failed to get leaderboard: %s", err)
 					}
-					exists := helpers.UserExistsInLeaderboard(lbes, user.UserName)
+					exists := helpers.UserExistsInLeaderboard(lbes, user.ID)
 					if !exists && user.ID != bot.Self.ID {
 						helpers.KickUser(bot, &helpers.KickArgs{
 							ChatID:       update.Message.Chat.ID,
