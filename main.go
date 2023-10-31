@@ -79,7 +79,7 @@ func main() {
 						}
 
 						// kick if not on leaderboard
-						lbes, err := dbp.GetValidLeaderboard()
+						lbes, err := dbp.GetValidLeaderboard(lbLimit)
 						if err != nil {
 							log.Printf("Failed to get leaderboard: %s", err)
 						}
@@ -132,7 +132,7 @@ func main() {
 				} else {
 					user := update.Message.From
 					// kick if not on leaderboard
-					lbes, err := dbp.GetValidLeaderboard()
+					lbes, err := dbp.GetValidLeaderboard(lbLimit)
 					if err != nil {
 						log.Printf("Failed to get leaderboard: %s", err)
 					}

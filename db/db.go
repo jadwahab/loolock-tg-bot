@@ -93,7 +93,7 @@ func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
 
 // Retrieve top leaderboard entries, ordered by amount locked
 func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(fmt.Sprintf(`SELECT amount_locked, paymail, telegram_username, is_verified FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
+	rows, err := db.DB.Query(fmt.Sprintf(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 	var entries []LeaderboardEntry
 	for rows.Next() {
 		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.IsVerified); err != nil {
+		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
@@ -110,8 +110,16 @@ func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
 	return entries, nil
 }
 
-func (db *DBParams) GetValidLeaderboard() ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC`)
+func (db *DBParams) GetValidLeaderboard(limit int) ([]LeaderboardEntry, error) {
+	var rows *sql.Rows
+	var err error
+
+	if limit > 0 {
+		rows, err = db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC LIMIT $1`, limit)
+	} else {
+		rows, err = db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC`)
+	}
+
 	if err != nil {
 		return nil, err
 	}
