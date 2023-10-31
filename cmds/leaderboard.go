@@ -39,7 +39,7 @@ func PrintLeaderboard(dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64, lbLi
 	for i, user := range leaderboard {
 
 		if user.TelegramUsername.Valid {
-			sb.WriteString(fmt.Sprintf("%d- %s/@%s - %f\n", i+1, user.Paymail, user.TelegramUsername.String, user.AmountLocked))
+			sb.WriteString(fmt.Sprintf("%d- %s:%s - %f\n", i+1, user.Paymail, user.TelegramUsername.String, user.AmountLocked))
 		} else {
 			sb.WriteString(fmt.Sprintf("%d- %s - %f\n", i+1, user.Paymail, user.AmountLocked))
 		}
