@@ -22,7 +22,7 @@ func RefreshLeaderboard(dbp *db.DBParams) error {
 
 func UserExistsInLeaderboard(leaderboard []db.LeaderboardEntry, userID int64) bool {
 	for _, entry := range leaderboard {
-		if entry.TelegramID == userID {
+		if entry.TelegramID.Valid && entry.TelegramID.Int64 == userID {
 			return true
 		}
 	}

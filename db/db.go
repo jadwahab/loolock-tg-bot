@@ -24,7 +24,7 @@ type LeaderboardEntry struct {
 	Paymail          string
 	PublicKey        string
 	TelegramUsername sql.NullString
-	TelegramID       int64
+	TelegramID       sql.NullInt64
 	IsVerified       bool
 	Challenge        string
 	Signature        string
@@ -91,33 +91,27 @@ func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
 	return users, nil
 }
 
-// Retrieve top leaderboard entries, ordered by amount locked
-func (db *DBParams) GetLeaderboard(limit int) ([]LeaderboardEntry, error) {
-	rows, err := db.DB.Query(fmt.Sprintf(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard ORDER BY amount_locked DESC LIMIT %d`, limit))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var entries []LeaderboardEntry
-	for rows.Next() {
-		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
-			return nil, err
-		}
-		entries = append(entries, entry)
-	}
-	return entries, nil
-}
-
-func (db *DBParams) GetValidLeaderboard(limit int) ([]LeaderboardEntry, error) {
+func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, error) {
 	var rows *sql.Rows
 	var err error
 
+	// Construct the base query string
+	baseQuery := `SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard`
+
+	// Add the WHERE clause if valid is true
+	if valid {
+		baseQuery += ` WHERE is_verified = true`
+	}
+
+	// Add the ORDER BY clause
+	baseQuery += ` ORDER BY amount_locked DESC`
+
+	// Add the LIMIT clause if limit is greater than 0
 	if limit > 0 {
-		rows, err = db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC LIMIT $1`, limit)
+		baseQuery += ` LIMIT $1`
+		rows, err = db.DB.Query(baseQuery, limit)
 	} else {
-		rows, err = db.DB.Query(`SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard WHERE is_verified = true ORDER BY amount_locked DESC`)
+		rows, err = db.DB.Query(baseQuery)
 	}
 
 	if err != nil {
