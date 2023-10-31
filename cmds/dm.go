@@ -20,6 +20,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		return
 	}
 
+	const lbLimit = 100
 	switch update.Message.Text {
 
 	case "/verify":
@@ -47,7 +48,6 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 
 	case "/leaderboard":
-		const lbLimit = 100
 		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
 
 	case "/kickintruders":
@@ -59,7 +59,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 				log.Printf("Failed to send message: %s", err)
 			}
 		}
-		lbes, err := dbp.GetValidLeaderboard()
+		lbes, err := dbp.GetValidLeaderboard(lbLimit)
 		if err != nil {
 			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to get leaderboard"))
 			if err != nil {
