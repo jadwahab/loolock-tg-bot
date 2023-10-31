@@ -27,48 +27,32 @@ func SendNewUserChallenge(newUser tgbotapi.User, bot *tgbotapi.BotAPI, chatID in
 }
 
 func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update, challenge, paymail, sig string) {
-
-	exists, err := dbp.PaymailExists(paymail)
+	pubkey, err := apis.GetPubKey(paymail)
 	if err != nil {
-		log.Printf("Database error while fetching paymail: %v", err)
-		return
-	}
-
-	if !exists { // paymail not found
-		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "You seem to have never locked any coins onchain. Go to hodlocker.com"))
+		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
 		return
+	}
 
-	} else { // paymail found
-		pubkey, err := apis.GetPubKey(paymail)
+	if helpers.VerifyBSM(pubkey, sig, challenge) { // sig verified
+		err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig, update.Message.From.ID)
 		if err != nil {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-			return
+			log.Printf("Failed to update verified user in leaderboard table: %s", err)
 		}
+		// If challenge is valid, send them the group link
+		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+			fmt.Sprintf("Successfully verified! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
+		log.Printf("Successfully verified user : %s, %d", update.Message.From.UserName, update.Message.From.ID)
 
-		if helpers.VerifyBSM(pubkey, sig, challenge) { // sig verified
-			err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig, update.Message.From.ID)
-			if err != nil {
-				log.Printf("Failed to update verified user in leaderboard table: %s", err)
-			}
-			// If challenge is valid, send them the group link
-			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-				fmt.Sprintf("Successfully verified! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
-			log.Printf("Successfully verified user : %s, %d", update.Message.From.UserName, update.Message.From.ID)
-
-		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid signature."))
-			if err != nil {
-				log.Printf("Failed to send message: %s", err)
-			}
+	} else {
+		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid signature."))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
 		}
 	}
 }
