@@ -16,14 +16,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 
 	challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 	if update.Message.Text != "" && valid {
-		// If challenge is valid, send them the group link
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("You're validated! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
-
-		HandleChallengeResponse(dbp, bot, update, challenge, paymail, sig)
+		HandleChallengeResponse(cfg, dbp, bot, update, challenge, paymail, sig)
 	}
 
 	switch update.Message.Text {

@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/apis"
+	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	"github.com/jadwahab/loolock-tg-bot/helpers"
 )
@@ -25,7 +26,7 @@ func SendNewUserChallenge(newUser tgbotapi.User, bot *tgbotapi.BotAPI, chatID in
 	}
 }
 
-func HandleChallengeResponse(dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update, challenge, paymail, sig string) {
+func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update, challenge, paymail, sig string) {
 
 	exists, err := dbp.PaymailExists(paymail)
 	if err != nil {
@@ -55,7 +56,9 @@ func HandleChallengeResponse(dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbo
 			if err != nil {
 				log.Printf("Failed to update verified user in leaderboard table: %s", err)
 			}
-			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Successfully verified!"))
+			// If challenge is valid, send them the group link
+			_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+				fmt.Sprintf("Successfully verified! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)
 			}
