@@ -92,6 +92,10 @@ func main() {
 								UserName:     newUser.UserName,
 								DBP:          dbp,
 							})
+							_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are not on the top 100 leaderboard!"))
+							if err != nil {
+								log.Printf("Failed to send message: %s", err)
+							}
 						}
 
 					}
@@ -141,6 +145,10 @@ func main() {
 							UserName:     user.UserName,
 							DBP:          dbp,
 						})
+						_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are no longer in the top 100 lockers!"))
+						if err != nil {
+							log.Printf("Failed to send message: %s", err)
+						}
 					}
 				}
 			}
