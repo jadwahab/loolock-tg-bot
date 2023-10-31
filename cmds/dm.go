@@ -17,6 +17,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 	if update.Message.Text != "" && valid {
 		HandleChallengeResponse(cfg, dbp, bot, update, challenge, paymail, sig)
+		return
 	}
 
 	switch update.Message.Text {
