@@ -25,42 +25,48 @@ type LeaderboardEntry struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 	AmountLiked      float64
+	Rank             int
 }
 
 func (db *DBParams) GetLeaderboard(valid bool, limit int, orderBy string) ([]LeaderboardEntry, error) {
 	var rows *sql.Rows
 	var err error
 
-	// Construct the base query string
+	// Start constructing the base query string
 	baseQuery := `
-	SELECT amount_locked, amount_liked, paymail, telegram_username, telegram_id, is_verified
-	FROM leaderboard`
-
-	// Add the WHERE clause if valid is true
-	if valid {
-		baseQuery += ` WHERE is_verified = true`
-	}
+	SELECT amount_locked, amount_liked, paymail, telegram_username, telegram_id, is_verified, rn
+	FROM (
+			SELECT *, ROW_NUMBER() OVER (`
 
 	// Determine the ORDER BY clause based on the orderBy parameter
 	switch orderBy {
 	case "locked":
-		baseQuery += ` ORDER BY amount_locked DESC`
+		baseQuery += `ORDER BY amount_locked DESC`
 	case "liked":
-		baseQuery += ` ORDER BY amount_liked DESC`
+		baseQuery += `ORDER BY amount_liked DESC`
 	case "both":
-		baseQuery += ` ORDER BY (amount_locked + amount_liked) DESC`
+		baseQuery += `ORDER BY (amount_locked + amount_liked) DESC`
 	default:
 		return nil, errors.New("invalid orderBy parameter")
 	}
 
-	// Add the LIMIT clause if limit is greater than 0
+	// Close the subquery for the window function
+	baseQuery += `) as rn FROM leaderboard`
+
+	// Add the LIMIT clause within the subquery
 	if limit > 0 {
-		baseQuery += ` LIMIT $1`
-		rows, err = db.DB.Query(baseQuery, limit)
-	} else {
-		rows, err = db.DB.Query(baseQuery)
+		baseQuery += fmt.Sprintf(` LIMIT %d`, limit)
 	}
 
+	// Close the subquery
+	baseQuery += `) as ranked`
+
+	if valid {
+		baseQuery += ` WHERE is_verified = true`
+	}
+
+	// Execute the query
+	rows, err = db.DB.Query(baseQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +75,7 @@ func (db *DBParams) GetLeaderboard(valid bool, limit int, orderBy string) ([]Lea
 	var entries []LeaderboardEntry
 	for rows.Next() {
 		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.AmountLocked, &entry.AmountLiked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
+		if err := rows.Scan(&entry.AmountLocked, &entry.AmountLiked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified, &entry.Rank); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
