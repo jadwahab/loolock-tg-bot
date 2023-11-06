@@ -105,9 +105,9 @@ func main() {
 
 			if update.Message.LeftChatMember != nil { // User leaves group
 				leaver := update.Message.LeftChatMember
-				err := dbp.RemoveUserFromGroupChatDB(update.Message.Chat.ID, leaver.ID)
+				err := dbp.UpdateUserLeftAt(update.Message.Chat.ID, leaver.ID)
 				if err != nil {
-					log.Printf("Failed to remove user %d from DB: %s", leaver.ID, err)
+					log.Printf("Failed to update left_at for user %d in DB: %s", leaver.ID, err)
 				}
 				log.Printf("User left the group with ID: %d, UserName: %s", leaver.ID, leaver.UserName)
 			}

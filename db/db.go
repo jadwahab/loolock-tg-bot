@@ -41,9 +41,9 @@ func (db *DBParams) AddUserToGroupChatDB(chatID int64, userID int64, username st
 	return err
 }
 
-func (db *DBParams) RemoveUserFromGroupChatDB(chatID int64, userID int64) error {
+func (db *DBParams) UpdateUserLeftAt(chatID int64, userID int64) error {
 	_, err := db.DB.Exec(
-		"DELETE FROM group_chat_users WHERE chat_id = $1 AND user_id = $2",
+		"UPDATE group_chat_users SET left_at = CURRENT_TIMESTAMP WHERE chat_id = $1 AND user_id = $2",
 		chatID, userID,
 	)
 	return err
