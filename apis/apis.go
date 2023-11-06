@@ -7,21 +7,21 @@ import (
 	"net/http"
 )
 
-type Bitcoiner struct {
+type LockedBitcoiner struct {
 	Index             int     `json:"index"`
 	Handle            string  `json:"handle"`
 	CreatedAt         string  `json:"created_at"`
 	TotalAmountLocked float64 `json:"totalAmountLocked"`
 }
 
-type BitcoinersResponse struct {
-	Bitcoiners []Bitcoiner `json:"rankedBitcoiners"`
+type LockedBitcoinersResponse struct {
+	Bitcoiners []LockedBitcoiner `json:"rankedBitcoiners"`
 }
 
-const LeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners"
+const LockedLeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners"
 
-func GetBitcoiners() ([]Bitcoiner, error) {
-	resp, err := http.Get(LeaderboardAPIEndpoint)
+func GetBitcoinersLocked() ([]LockedBitcoiner, error) {
+	resp, err := http.Get(LockedLeaderboardAPIEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,40 @@ func GetBitcoiners() ([]Bitcoiner, error) {
 		return nil, err
 	}
 
-	var response BitcoinersResponse
+	var response LockedBitcoinersResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	return response.Bitcoiners, nil
+}
+
+type LikedBitcoiner struct {
+	Index                    int     `json:"index"`
+	Handle                   string  `json:"handle"`
+	CreatedAt                string  `json:"created_at"`
+	TotalLockLikedFromOthers float64 `json:"totalLockLikedFromOthers"`
+}
+
+type LikedBitcoinersResponse struct {
+	Bitcoiners []LikedBitcoiner `json:"rankedBitcoiners"`
+}
+
+const LikedLeaderboardAPIEndpoint = "https://www.hodlocker.com/api/bitcoiners/liked"
+
+func GetBitcoinersLiked() ([]LikedBitcoiner, error) {
+	resp, err := http.Get(LikedLeaderboardAPIEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response LikedBitcoinersResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
 	}

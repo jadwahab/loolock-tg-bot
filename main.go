@@ -157,6 +157,7 @@ func main() {
 
 	}
 
+	// TODO: move to top to see if it works
 	// Create a ticker and call the refresh function periodically
 	ticker := time.NewTicker(time.Duration(cfg.RefreshPeriod) * time.Hour)
 	go func() {

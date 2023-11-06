@@ -24,6 +24,7 @@ type LeaderboardEntry struct {
 	Signature        string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	AmountLiked      float64
 }
 
 func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, error) {
@@ -31,15 +32,17 @@ func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, e
 	var err error
 
 	// Construct the base query string
-	baseQuery := `SELECT amount_locked, paymail, telegram_username, telegram_id, is_verified FROM leaderboard`
+	baseQuery := `
+	SELECT amount_locked, amount_liked, paymail, telegram_username, telegram_id, is_verified
+	FROM leaderboard`
 
 	// Add the WHERE clause if valid is true
 	if valid {
 		baseQuery += ` WHERE is_verified = true`
 	}
 
-	// Add the ORDER BY clause
-	baseQuery += ` ORDER BY amount_locked DESC`
+	// Add the ORDER BY clause to order by the sum of amount_locked and amount_liked
+	baseQuery += ` ORDER BY (amount_locked + amount_liked) DESC`
 
 	// Add the LIMIT clause if limit is greater than 0
 	if limit > 0 {
@@ -57,7 +60,7 @@ func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, e
 	var entries []LeaderboardEntry
 	for rows.Next() {
 		var entry LeaderboardEntry
-		if err := rows.Scan(&entry.AmountLocked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
+		if err := rows.Scan(&entry.AmountLocked, &entry.AmountLiked, &entry.Paymail, &entry.TelegramUsername, &entry.TelegramID, &entry.IsVerified); err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
@@ -88,7 +91,7 @@ func (db *DBParams) UpsertUser(amountLocked float64, paymail string) error {
 	return nil
 }
 
-func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
+func (db *DBParams) BatchUpsertLocked(bitcoiners []apis.LockedBitcoiner) error {
 	// Prepare data
 	var valueStrings []string
 	var valueArgs []interface{}
@@ -108,6 +111,35 @@ func (db *DBParams) BatchUpsert(bitcoiners []apis.Bitcoiner) error {
 		VALUES ` + strings.Join(valueStrings, ",") + `
 		ON CONFLICT (paymail)
 		DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
+	`
+	_, err := db.DB.Exec(sqlStatement, valueArgs...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DBParams) BatchUpsertLiked(bitcoiners []apis.LikedBitcoiner) error {
+	// Prepare data
+	var valueStrings []string
+	var valueArgs []interface{}
+	i := 1
+	for _, bitcoiner := range bitcoiners {
+		s, err := paymail.ValidateAndSanitisePaymail(bitcoiner.Handle, false)
+		if err != nil {
+			return err
+		}
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i, i+1, i+2, i+3))
+		valueArgs = append(valueArgs, bitcoiner.TotalLockLikedFromOthers, s.Address, time.Now(), time.Now())
+		i += 4
+	}
+
+	sqlStatement := `
+		INSERT INTO leaderboard (amount_liked, paymail, created_at, updated_at) 
+		VALUES ` + strings.Join(valueStrings, ",") + `
+		ON CONFLICT (paymail)
+		DO UPDATE SET amount_liked = EXCLUDED.amount_liked, updated_at = NOW();
 	`
 	_, err := db.DB.Exec(sqlStatement, valueArgs...)
 	if err != nil {
