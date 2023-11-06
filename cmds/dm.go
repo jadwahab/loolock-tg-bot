@@ -21,6 +21,8 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	}
 
 	const lbLimit = 100
+	const top100ChatID = -1001984238822
+
 	switch update.Message.Text {
 
 	case "/verify":
@@ -50,8 +52,17 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 	case "/leaderboard":
 		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
 
+	// unexposed commands:
+	case "/announce":
+		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "GM elites!\n\n"+
+			"Leaderboard calculations have now gone from using just amount LOCKED "+
+			"to a combitation of amount LOCKED + LIKED!\nThis means the leaderbaord "+
+			"will change so don't be surprised if you get kicked - go lock up more!"))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
+
 	case "/kickintruders":
-		const top100ChatID = -1001984238822
 		users, err := dbp.GetUniqueUsers(top100ChatID)
 		if err != nil {
 			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to fetch users from database"))

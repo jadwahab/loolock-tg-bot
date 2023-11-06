@@ -48,7 +48,7 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	// Create a ticker and refresh leaderboard periodically
-	ticker := time.NewTicker(time.Duration(cfg.RefreshPeriod) * time.Minute)
+	ticker := time.NewTicker(time.Duration(cfg.RefreshPeriod) * time.Hour)
 	go func() {
 		for range ticker.C {
 			err := helpers.RefreshLeaderboard(dbp)
@@ -104,7 +104,7 @@ func main() {
 								UserName:     newUser.UserName,
 								DBP:          dbp,
 							})
-							_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are not on the top 100 leaderboard!"))
+							_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are not on the top 100 leaderboard!")) // TODO: add message into kickuser
 							if err != nil {
 								log.Printf("Failed to send message: %s", err)
 							}
