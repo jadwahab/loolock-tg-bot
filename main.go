@@ -103,11 +103,8 @@ func main() {
 								KickDuration: time.Duration(cfg.KickDuration),
 								UserName:     newUser.UserName,
 								DBP:          dbp,
+								KickMessage:  "You were kicked because you are not on the top 100 leaderboard!",
 							})
-							_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are not on the top 100 leaderboard!")) // TODO: add message into kickuser
-							if err != nil {
-								log.Printf("Failed to send message: %s", err)
-							}
 						}
 
 					}
@@ -156,11 +153,8 @@ func main() {
 							KickDuration: time.Duration(cfg.KickDuration),
 							UserName:     user.UserName,
 							DBP:          dbp,
+							KickMessage:  "You were kicked because you are no longer in the top 100 lockers!",
 						})
-						_, err := bot.Send(tgbotapi.NewMessage(update.Message.From.ID, "You were kicked because you are no longer in the top 100 lockers!"))
-						if err != nil {
-							log.Printf("Failed to send message: %s", err)
-						}
 					}
 				}
 			}

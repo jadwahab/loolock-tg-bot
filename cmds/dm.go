@@ -54,9 +54,9 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 
 	// unexposed commands:
 	case "/announce":
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "GM elites!\n\n"+
+		_, err := bot.Send(tgbotapi.NewMessage(top100ChatID, "GM elites!\n\n"+
 			"Leaderboard calculations have now gone from using just amount LOCKED "+
-			"to a combitation of amount LOCKED + LIKED!\nThis means the leaderbaord "+
+			"to a combitation of amount LOCKED + LIKED!\n\nThis means the leaderbaord "+
 			"will change so don't be surprised if you get kicked - go lock up more!"))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
@@ -86,6 +86,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 					KickDuration: time.Duration(cfg.KickDuration),
 					UserName:     user.UserName,
 					DBP:          dbp,
+					KickMessage:  "You were kicked because you are no longer in the top 100 lockers!",
 				})
 			}
 		}

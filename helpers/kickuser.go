@@ -14,6 +14,7 @@ type KickArgs struct {
 	UserName     string
 	KickDuration time.Duration
 	DBP          *db.DBParams
+	KickMessage  string
 }
 
 func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
@@ -43,8 +44,9 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 		log.Printf("Failed to unban user: %s", err)
 	}
 
-	// err = ka.DBP.RemoveUserFromGroupChatDB(ka.ChatID, ka.UserID)
-	// if err != nil {
-	// 	log.Printf("Failed to remove user from group chat DB: %s", err)
-	// }
+	// Send a message to the user
+	_, err = bot.Send(tgbotapi.NewMessage(ka.UserID, ka.KickMessage))
+	if err != nil {
+		log.Printf("Failed to send message: %s", err)
+	}
 }
