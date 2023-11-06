@@ -59,7 +59,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 				log.Printf("Failed to send message: %s", err)
 			}
 		}
-		lbes, err := dbp.GetLeaderboard(true, lbLimit)
+		lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
 		if err != nil {
 			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to get leaderboard"))
 			if err != nil {

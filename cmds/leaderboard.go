@@ -25,7 +25,7 @@ func PrintLeaderboard(dbp *db.DBParams, bot *tgbotapi.BotAPI, chatID int64, lbLi
 		return
 	}
 
-	leaderboard, err := dbp.GetLeaderboard(false, lbLimit)
+	leaderboard, err := dbp.GetLeaderboard(false, lbLimit, "both")
 	if err != nil {
 		log.Println(err.Error())
 		_, err = bot.Send(tgbotapi.NewMessage(chatID, "Error getting leaderbord from DB"))

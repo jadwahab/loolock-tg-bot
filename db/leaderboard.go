@@ -27,7 +27,7 @@ type LeaderboardEntry struct {
 	AmountLiked      float64
 }
 
-func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, error) {
+func (db *DBParams) GetLeaderboard(valid bool, limit int, orderBy string) ([]LeaderboardEntry, error) {
 	var rows *sql.Rows
 	var err error
 
@@ -41,8 +41,17 @@ func (db *DBParams) GetLeaderboard(valid bool, limit int) ([]LeaderboardEntry, e
 		baseQuery += ` WHERE is_verified = true`
 	}
 
-	// Add the ORDER BY clause to order by the sum of amount_locked and amount_liked
-	baseQuery += ` ORDER BY (amount_locked + amount_liked) DESC`
+	// Determine the ORDER BY clause based on the orderBy parameter
+	switch orderBy {
+	case "locked":
+		baseQuery += ` ORDER BY amount_locked DESC`
+	case "liked":
+		baseQuery += ` ORDER BY amount_liked DESC`
+	case "both":
+		baseQuery += ` ORDER BY (amount_locked + amount_liked) DESC`
+	default:
+		return nil, errors.New("invalid orderBy parameter")
+	}
 
 	// Add the LIMIT clause if limit is greater than 0
 	if limit > 0 {
