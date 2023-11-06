@@ -126,7 +126,7 @@ func (db *DBParams) BatchUpsertLiked(bitcoiners []apis.LikedBitcoiner) error {
 	var valueArgs []interface{}
 	i := 1
 	for _, bitcoiner := range bitcoiners {
-		s, err := paymail.ValidateAndSanitisePaymail(bitcoiner.Handle, false)
+		s, err := paymail.ValidateAndSanitisePaymail("1"+bitcoiner.Handle, false) // TODO: harden instead of prepending '1'
 		if err != nil {
 			return err
 		}
