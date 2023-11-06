@@ -47,9 +47,21 @@ func main() {
 	bot.Debug = cfg.BotDebug
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
+	// Create a ticker and refresh leaderboard periodically
+	ticker := time.NewTicker(time.Duration(cfg.RefreshPeriod) * time.Minute)
+	go func() {
+		for range ticker.C {
+			err := helpers.RefreshLeaderboard(dbp)
+			if err != nil {
+				fmt.Println("Error refreshing leaderboard:", err)
+			} else {
+				fmt.Println("Leaderboard refreshed!")
+			}
+		}
+	}()
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
@@ -156,19 +168,5 @@ func main() {
 		}
 
 	}
-
-	// TODO: move to top to see if it works
-	// Create a ticker and call the refresh function periodically
-	ticker := time.NewTicker(time.Duration(cfg.RefreshPeriod) * time.Hour)
-	go func() {
-		for range ticker.C {
-			err := helpers.RefreshLeaderboard(dbp)
-			if err != nil {
-				fmt.Println("Error refreshing leaderboard:", err)
-			} else {
-				fmt.Println("Leaderboard refreshed!")
-			}
-		}
-	}()
 
 }
