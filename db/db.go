@@ -37,7 +37,7 @@ func (db *DBParams) AddUserToGroupChatDB(chatID int64, userID int64, username st
 		"INSERT INTO group_chat_users (chat_id, user_id, username) VALUES ($1, $2, $3)",
 		chatID, userID, username,
 	)
-	fmt.Printf("Added user %s, %d to chat %d", username, userID, chatID)
+	fmt.Printf("Added user %s, %d to chat %d\n", username, userID, chatID)
 	return err
 }
 
