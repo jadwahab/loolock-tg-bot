@@ -3,6 +3,7 @@ package cmds
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,20 +14,6 @@ import (
 
 func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	log.Printf("Received DM from [%s:%d] %s", update.Message.From.UserName, update.Message.From.ID, update.Message.Text)
-
-	// TODO: handle challenge with pubkey not paymail
-	challengeResponse, valid := helpers.IsValidChallengeResponse(update.Message.Text)
-	if valid {
-		if update.Message.Text != "" {
-			HandleChallengeResponse(cfg, dbp, bot, update, challengeResponse)
-			return
-		}
-	} else {
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid verification message format."))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
-		}
-	}
 
 	const lbLimit = 100
 	const top100ChatID = -1001984238822
@@ -100,13 +87,31 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 
 	default:
-		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Invalid command. Use /verify or /top or /leaderboard\n\n"+
-				"/verify - Verify your identity\n"+
-				"/top100 - Get access to the TOP 100 lockers group\n"+
-				"/leaderboard - Get the TOP 100 leaderboard"))
-		if err != nil {
-			log.Printf("Failed to send message: %s", err)
+		if strings.HasPrefix(update.Message.Text, "/") {
+			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
+				"Invalid command. Use /verify or /top or /leaderboard\n\n"+
+					"/verify - Verify your identity\n"+
+					"/top100 - Get access to the TOP 100 lockers group\n"+
+					"/leaderboard - Get the TOP 100 leaderboard"))
+			if err != nil {
+				log.Printf("Failed to send message: %s", err)
+			}
+		} else {
+
+			// TODO: handle challenge with pubkey not paymail
+			challengeResponse, valid := helpers.IsValidChallengeResponse(update.Message.Text)
+			if valid {
+				if update.Message.Text != "" {
+					HandleChallengeResponse(cfg, dbp, bot, update, challengeResponse)
+					return
+				}
+			} else {
+				_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid verification message format."))
+				if err != nil {
+					log.Printf("Failed to send message: %s", err)
+				}
+			}
 		}
+
 	}
 }
