@@ -17,7 +17,7 @@ type ChallengeResponse struct {
 func IsValidChallengeResponse(message string) (*ChallengeResponse, bool) {
 	lines := strings.Split(strings.TrimSpace(message), "\n")
 
-	if 3 <= len(lines) && len(lines) <= 4 {
+	if len(lines) < 3 || len(lines) > 4 {
 		return nil, false
 	}
 
