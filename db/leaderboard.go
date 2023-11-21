@@ -90,6 +90,7 @@ func (db *DBParams) UpdateVerifiedUser(paymail, telegramUsername, challenge, pub
 	return err
 }
 
+// TODO: upsert with pubkey not paymail and make pubkey primary key
 func (db *DBParams) UpsertUser(amountLocked float64, paymail string) error {
 	// Prepare SQL for upsert
 	sqlStatement := `

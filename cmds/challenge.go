@@ -26,8 +26,8 @@ func SendNewUserChallenge(newUser tgbotapi.User, bot *tgbotapi.BotAPI, chatID in
 	}
 }
 
-func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update, challenge, paymail, sig string) {
-	pubkey, err := apis.GetPubKey(paymail)
+func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update, cr *helpers.ChallengeResponse) {
+	pubkey, err := apis.GetPubKey(cr.Paymail)
 	if err != nil {
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Error getting public key for your paymail"))
 		if err != nil {
@@ -36,8 +36,8 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 		return
 	}
 
-	if helpers.VerifyBSM(pubkey, sig, challenge) { // sig verified
-		err := dbp.UpdateVerifiedUser(paymail, update.Message.From.UserName, challenge, pubkey, sig, update.Message.From.ID)
+	if helpers.VerifyBSM(pubkey, cr.Signature, cr.Challenge) { // sig verified
+		err := dbp.UpdateVerifiedUser(cr.Paymail, update.Message.From.UserName, cr.Challenge, pubkey, cr.Signature, update.Message.From.ID)
 		if err != nil {
 			log.Printf("Failed to update verified user in leaderboard table: %s", err)
 		}

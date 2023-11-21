@@ -14,9 +14,10 @@ import (
 func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	log.Printf("Received DM from [%s:%d] %s", update.Message.From.UserName, update.Message.From.ID, update.Message.Text)
 
-	challenge, paymail, sig, valid := helpers.IsValidChallengeResponse(update.Message.Text)
+	// TODO: handle challenge with pubkey not paymail
+	challengeResponse, valid := helpers.IsValidChallengeResponse(update.Message.Text)
 	if update.Message.Text != "" && valid {
-		HandleChallengeResponse(cfg, dbp, bot, update, challenge, paymail, sig)
+		HandleChallengeResponse(cfg, dbp, bot, update, challengeResponse)
 		return
 	}
 
