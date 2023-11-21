@@ -16,9 +16,16 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 
 	// TODO: handle challenge with pubkey not paymail
 	challengeResponse, valid := helpers.IsValidChallengeResponse(update.Message.Text)
-	if update.Message.Text != "" && valid {
-		HandleChallengeResponse(cfg, dbp, bot, update, challengeResponse)
-		return
+	if valid {
+		if update.Message.Text != "" {
+			HandleChallengeResponse(cfg, dbp, bot, update, challengeResponse)
+			return
+		}
+	} else {
+		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid verification message format."))
+		if err != nil {
+			log.Printf("Failed to send message: %s", err)
+		}
 	}
 
 	const lbLimit = 100
