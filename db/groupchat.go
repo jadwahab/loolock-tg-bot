@@ -1,13 +1,13 @@
 package db
 
-import "fmt"
+import "log"
 
 func (db *DBParams) AddUserToGroupChatDB(chatID int64, userID int64, username string) error {
 	_, err := db.DB.Exec(
 		"INSERT INTO group_chat_users (chat_id, user_id, username) VALUES ($1, $2, $3)",
 		chatID, userID, username,
 	)
-	fmt.Printf("Added user %s, %d to chat %d\n", username, userID, chatID)
+	log.Printf("Added user %s, %d to chat %d\n", username, userID, chatID)
 	return err
 }
 

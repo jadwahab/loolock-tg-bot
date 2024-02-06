@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -53,9 +52,9 @@ func main() {
 		for range ticker.C {
 			err := helpers.RefreshLeaderboard(dbp)
 			if err != nil {
-				fmt.Println("Error refreshing leaderboard:", err)
+				log.Println("Error refreshing leaderboard:", err)
 			} else {
-				fmt.Println("Leaderboard refreshed!")
+				log.Println("Leaderboard refreshed!")
 			}
 		}
 	}()
