@@ -55,14 +55,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 
 	case "/kickintruders":
-		members, err := dbp.GetCurrentMembers(cfg.Groups[config.TopLockers].ChatID)
-		if err != nil {
-			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
-			if err != nil {
-				log.Printf("Failed to notify admin: %s", err)
-			}
-		}
-		err = helpers.HandleUserOverflow(dbp, cfg, bot, cfg.Groups[config.TopLockers].ChatID, members, cfg.Groups[config.TopLockers].Limit)
+		err := helpers.HandleUserOverflow(dbp, cfg, bot, cfg.Groups[config.TopLockers].ChatID, cfg.Groups[config.TopLockers].Limit)
 		if err != nil {
 			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
 			if err != nil {

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"strings"
@@ -14,6 +15,18 @@ import (
 
 func HandleNewUser(dbp *db.DBParams, cfg config.Config, bot *tgbotapi.BotAPI, newUser tgbotapi.User) error {
 	chatID := cfg.Groups[config.TopLockers].ChatID
+
+	// TODO: remove later
+	c := tgbotapi.SetChatTitleConfig{
+		ChatID: chatID,
+		Title:  "TOP 50 Lockers",
+	}
+	if _, err := bot.Request(c); err != nil {
+		log.Println("Error setting chat title:", err)
+	} else {
+		log.Println("Chat title changed successfully!")
+	}
+	//
 
 	lbe, err := dbp.GetUserByTelegramID(newUser.ID)
 	if err != nil {
@@ -40,7 +53,7 @@ func HandleNewUser(dbp *db.DBParams, cfg config.Config, bot *tgbotapi.BotAPI, ne
 	members = append(members, db.ChatUser{
 		UserID:   newUser.ID,
 		UserName: newUser.UserName,
-		TgName:   strings.TrimSpace(newUser.FirstName + " " + newUser.LastName),
+		TgName:   sql.NullString{String: strings.TrimSpace(newUser.FirstName + " " + newUser.LastName)},
 	})
 
 	chatLimit := cfg.Groups[config.TopLockers].Limit

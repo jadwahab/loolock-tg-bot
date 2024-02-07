@@ -1,6 +1,9 @@
 package db
 
-import "log"
+import (
+	"database/sql"
+	"log"
+)
 
 // FIXME: make the db primary key include the chatID if want to create multiple groups
 
@@ -49,7 +52,7 @@ func (db *DBParams) UserExists(chatID int64, userID int64) (bool, error) {
 type ChatUser struct {
 	UserID   int64
 	UserName string
-	TgName   string
+	TgName   sql.NullString
 }
 
 func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
