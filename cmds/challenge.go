@@ -40,6 +40,10 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 		err := dbp.UpdateVerifiedUser(cr.Paymail, update.Message.From.UserName, cr.Challenge, pubkey, cr.Signature, update.Message.From.ID)
 		if err != nil {
 			log.Printf("Failed to update verified user in leaderboard table: %s", err)
+			err = NotifyAdmin(bot, fmt.Sprintf("Failed to update verified user in leaderboard table: %s", err))
+			if err != nil {
+				log.Printf("Failed to notify admin: %s", err)
+			}
 		}
 		// If challenge is valid, send them the group link
 		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
@@ -48,6 +52,10 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 			log.Printf("Failed to send message: %s", err)
 		}
 		log.Printf("Successfully verified user: %s, %d", update.Message.From.UserName, update.Message.From.ID)
+		err = NotifyAdmin(bot, fmt.Sprintf("Successfully verified user: %s, %d", update.Message.From.UserName, update.Message.From.ID))
+		if err != nil {
+			log.Printf("Failed to notify admin: %s", err)
+		}
 
 	} else {
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Invalid signature."))

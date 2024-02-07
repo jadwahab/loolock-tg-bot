@@ -107,6 +107,10 @@ func main() {
 							err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
 							if err != nil {
 								log.Printf("Failed to add user to group table: %s", err)
+								err = cmds.NotifyAdmin(bot, fmt.Sprintf("Failed to add user to group table: %s", err))
+								if err != nil {
+									log.Printf("Failed to notify admin: %s", err)
+								}
 							}
 						}
 
@@ -120,17 +124,18 @@ func main() {
 				err := dbp.UpdateUserLeftAt(update.Message.Chat.ID, leaver.ID)
 				if err != nil {
 					log.Printf("Failed to update left_at for user %d in DB: %s", leaver.ID, err)
+					err = cmds.NotifyAdmin(bot, fmt.Sprintf("Failed to update left_at for user %d in DB: %s", leaver.ID, err))
+					if err != nil {
+						log.Printf("Failed to notify admin: %s", err)
+					}
 				}
 				log.Printf("User left the group with ID: %d, UserName: %s", leaver.ID, leaver.UserName)
 			}
 
 			if update.Message != nil { // Message sent on group
 				log.Printf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text)
-				err := cmds.NotifyAdmin(bot, fmt.Sprintf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text))
-				if err != nil {
-					log.Printf("Failed to notify admin: %s", err)
-				}
 
+				// TODO: remove?
 				// check user exists in group_chat_users table and add if not
 				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
 				if err != nil {
@@ -165,6 +170,7 @@ func main() {
 						})
 					}
 				}
+				// TODO: remove end
 			}
 			continue
 		}
