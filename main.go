@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -77,7 +76,6 @@ func main() {
 		}
 
 		if update.Message.Chat.ID == cfg.Groups[config.Top100].ChatID { // TOP 100 CHAT
-			const lbLimit = 100
 
 			if len(update.Message.NewChatMembers) > 0 { // New user(s) join group
 				for _, newUser := range update.Message.NewChatMembers {
@@ -86,36 +84,13 @@ func main() {
 						cmds.WelcomeMessage(cfg, bot, update)
 
 					} else { // Not bot
-
-						// helpers.HandleNewUser(dbp, bot, update, newUser, lbLimit)
-
-						// kick if not on leaderboard
-						lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
+						err := helpers.HandleNewUser(dbp, cfg, bot, newUser)
 						if err != nil {
-							log.Printf("Failed to get leaderboard: %s", err)
-						}
-						exists := helpers.UserExistsInLeaderboard(lbes, newUser.ID)
-						if !exists && newUser.ID != bot.Self.ID {
-							helpers.KickUser(bot, &helpers.KickArgs{
-								ChatID:       update.Message.Chat.ID,
-								UserID:       newUser.ID,
-								KickDuration: time.Duration(cfg.KickDuration),
-								UserName:     newUser.UserName,
-								DBP:          dbp,
-								KickMessage:  "You were kicked because you are not on the top 100 leaderboard!",
-							})
-						} else {
-							log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
-							user := update.Message.From
-							err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
+							err = admin.Notify(bot, "Failed to handle new user: "+err.Error())
 							if err != nil {
-								err = admin.Notify(bot, fmt.Sprintf("Failed to add user to group table: %s", err))
-								if err != nil {
-									log.Printf("Failed to notify admin: %s", err)
-								}
+								log.Printf("Failed to notify admin: %s", err)
 							}
 						}
-
 					}
 				}
 				continue
@@ -136,45 +111,26 @@ func main() {
 			if update.Message != nil { // Message sent on group
 				log.Printf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text)
 
-				// TODO: remove?
-				// check user exists in group_chat_users table and add if not
-				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
-				if err != nil {
-					log.Printf("Failed to check if user exists: %s", err)
-				}
-				if !userExists {
-					user := update.Message.From
-					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
-					if err != nil {
-						log.Printf("Failed to add user to group table: %s", err)
-					}
-				}
+				// // TODO: remove?
+				// // check user exists in group_chat_users table and add if not
+				// userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
+				// if err != nil {
+				// 	log.Printf("Failed to check if user exists: %s", err)
+				// }
+				// if !userExists {
+				// 	user := update.Message.From
+				// 	err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
+				// 	if err != nil {
+				// 		log.Printf("Failed to add user to group table: %s", err)
+				// 	}
+				// }
 
 				if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
 					cmds.AdminCommand(update.Message.Text, dbp, bot, update)
-				} else {
-					user := update.Message.From
-					// kick if not on leaderboard
-					lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
-					if err != nil {
-						log.Printf("Failed to get leaderboard: %s", err)
-					}
-					exists := helpers.UserExistsInLeaderboard(lbes, user.ID)
-					if !exists && user.ID != bot.Self.ID {
-						helpers.KickUser(bot, &helpers.KickArgs{
-							ChatID:       update.Message.Chat.ID,
-							UserID:       user.ID,
-							KickDuration: time.Duration(cfg.KickDuration),
-							UserName:     user.UserName,
-							DBP:          dbp,
-							KickMessage:  "You were kicked because you are no longer in the top 100 lockers!",
-						})
-					}
 				}
-				// TODO: remove end
 			}
 			continue
-		}
+		} // end TOP 100 CHAT
 
 	}
 
