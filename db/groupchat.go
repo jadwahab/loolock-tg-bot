@@ -49,6 +49,7 @@ func (db *DBParams) UserExists(chatID int64, userID int64) (bool, error) {
 type ChatUser struct {
 	UserID   int64
 	UserName string
+	TgName   string
 }
 
 func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
@@ -63,6 +64,30 @@ func (db *DBParams) GetUniqueUsers(chatID int64) ([]ChatUser, error) {
 	for rows.Next() {
 		var user ChatUser
 		if err := rows.Scan(&user.UserID, &user.UserName); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (db *DBParams) GetCurrentMembers(chatID int64) ([]ChatUser, error) {
+	var users []ChatUser
+
+	rows, err := db.DB.Query("SELECT user_id, username, tg_name FROM group_chat_users WHERE chat_id = $1 AND member = true", chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user ChatUser
+		if err := rows.Scan(&user.UserID, &user.UserName, &user.TgName); err != nil {
 			return nil, err
 		}
 		users = append(users, user)

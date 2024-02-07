@@ -26,6 +26,7 @@ const (
 type TGGroup struct {
 	Link   string `yaml:"link"`
 	ChatID int64  `yaml:"chatID"`
+	Limit  int    `yaml:"limit"`
 }
 
 func LoadConfig(filename string) (Config, error) {

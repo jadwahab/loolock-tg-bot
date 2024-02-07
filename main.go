@@ -10,6 +10,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/cmds"
+	"github.com/jadwahab/loolock-tg-bot/cmds/admin"
 	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	"github.com/jadwahab/loolock-tg-bot/helpers"
@@ -86,6 +87,8 @@ func main() {
 
 					} else { // Not bot
 
+						// helpers.HandleNewUser(dbp, bot, update, newUser, lbLimit)
+
 						// kick if not on leaderboard
 						lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
 						if err != nil {
@@ -106,8 +109,7 @@ func main() {
 							user := update.Message.From
 							err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
 							if err != nil {
-								log.Printf("Failed to add user to group table: %s", err)
-								err = cmds.NotifyAdmin(bot, fmt.Sprintf("Failed to add user to group table: %s", err))
+								err = admin.Notify(bot, fmt.Sprintf("Failed to add user to group table: %s", err))
 								if err != nil {
 									log.Printf("Failed to notify admin: %s", err)
 								}
@@ -123,8 +125,7 @@ func main() {
 				leaver := update.Message.LeftChatMember
 				err := dbp.UpdateUserLeftAt(update.Message.Chat.ID, leaver.ID)
 				if err != nil {
-					log.Printf("Failed to update left_at for user %d in DB: %s", leaver.ID, err)
-					err = cmds.NotifyAdmin(bot, fmt.Sprintf("Failed to update left_at for user %d in DB: %s", leaver.ID, err))
+					err = admin.Notify(bot, fmt.Sprintf("Failed to update left_at for user %d in DB: %s", leaver.ID, err))
 					if err != nil {
 						log.Printf("Failed to notify admin: %s", err)
 					}

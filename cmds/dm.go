@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jadwahab/loolock-tg-bot/cmds/admin"
 	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	"github.com/jadwahab/loolock-tg-bot/helpers"
@@ -58,31 +58,18 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 
 	case "/kickintruders":
-		users, err := dbp.GetUniqueUsers(top100ChatID)
+		members, err := dbp.GetCurrentMembers(top100ChatID)
 		if err != nil {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to fetch users from database"))
+			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
 			if err != nil {
-				log.Printf("Failed to send message: %s", err)
+				log.Printf("Failed to notify admin: %s", err)
 			}
 		}
-		lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
+		err = helpers.HandleUserOverflow(dbp, cfg, bot, top100ChatID, members, cfg.Groups[config.Top100].Limit)
 		if err != nil {
-			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to get leaderboard"))
+			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
 			if err != nil {
-				log.Printf("Failed to get leaderboard: %s", err)
-			}
-		}
-		for _, user := range users {
-			exists := helpers.UserExistsInLeaderboard(lbes, user.UserID)
-			if !exists && user.UserID != bot.Self.ID {
-				helpers.KickUser(bot, &helpers.KickArgs{
-					ChatID:       top100ChatID,
-					UserID:       user.UserID,
-					KickDuration: time.Duration(cfg.KickDuration),
-					UserName:     user.UserName,
-					DBP:          dbp,
-					KickMessage:  "You were kicked because you are no longer in the top 100 lockers!",
-				})
+				log.Printf("Failed to notify admin: %s", err)
 			}
 		}
 

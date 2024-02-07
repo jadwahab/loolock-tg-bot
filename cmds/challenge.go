@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jadwahab/loolock-tg-bot/apis"
+	"github.com/jadwahab/loolock-tg-bot/cmds/admin"
 	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 	"github.com/jadwahab/loolock-tg-bot/helpers"
@@ -39,8 +40,7 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 	if helpers.VerifyBSM(pubkey, cr.Signature, cr.Challenge) { // sig verified
 		err := dbp.UpdateVerifiedUser(cr.Paymail, update.Message.From.UserName, cr.Challenge, pubkey, cr.Signature, update.Message.From.ID)
 		if err != nil {
-			log.Printf("Failed to update verified user in leaderboard table: %s", err)
-			err = NotifyAdmin(bot, fmt.Sprintf("Failed to update verified user in leaderboard table: %s", err))
+			err = admin.Notify(bot, fmt.Sprintf("Failed to update verified user in leaderboard table: %s", err))
 			if err != nil {
 				log.Printf("Failed to notify admin: %s", err)
 			}
@@ -51,8 +51,7 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
-		log.Printf("Successfully verified user: %s, %d", update.Message.From.UserName, update.Message.From.ID)
-		err = NotifyAdmin(bot, fmt.Sprintf("Successfully verified user: %s, %d", update.Message.From.UserName, update.Message.From.ID))
+		err = admin.Notify(bot, fmt.Sprintf("Successfully verified user: %s, %d", update.Message.From.UserName, update.Message.From.ID))
 		if err != nil {
 			log.Printf("Failed to notify admin: %s", err)
 		}

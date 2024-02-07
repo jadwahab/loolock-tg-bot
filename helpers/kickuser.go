@@ -18,6 +18,10 @@ type KickArgs struct {
 }
 
 func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
+	if ka.KickDuration == 0 {
+		ka.KickDuration = 1
+	}
+
 	_, err := bot.Request(tgbotapi.BanChatMemberConfig{
 		ChatMemberConfig: tgbotapi.ChatMemberConfig{
 			ChatID: ka.ChatID,
