@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -83,11 +84,6 @@ func main() {
 						cmds.WelcomeMessage(cfg, bot, update)
 
 					} else { // Not bot
-						log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
-						err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
-						if err != nil {
-							log.Printf("Failed to add user to group table: %s", err)
-						}
 
 						// kick if not on leaderboard
 						lbes, err := dbp.GetLeaderboard(true, lbLimit, "both")
@@ -104,6 +100,13 @@ func main() {
 								DBP:          dbp,
 								KickMessage:  "You were kicked because you are not on the top 100 leaderboard!",
 							})
+						} else {
+							log.Printf("New user joined ChatID: %d, UserID: %d, UserName: %s", update.Message.Chat.ID, newUser.ID, newUser.UserName)
+							user := update.Message.From
+							err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
+							if err != nil {
+								log.Printf("Failed to add user to group table: %s", err)
+							}
 						}
 
 					}
@@ -120,7 +123,7 @@ func main() {
 				log.Printf("User left the group with ID: %d, UserName: %s", leaver.ID, leaver.UserName)
 			}
 
-			if update.Message != nil {
+			if update.Message != nil { // Message sent on group
 				log.Printf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text)
 
 				// check user exists in group_chat_users table and add if not
@@ -129,7 +132,8 @@ func main() {
 					log.Printf("Failed to check if user exists: %s", err)
 				}
 				if !userExists {
-					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, update.Message.From.ID, update.Message.From.UserName)
+					user := update.Message.From
+					err = dbp.AddUserToGroupChatDB(update.Message.Chat.ID, user.ID, user.UserName, strings.TrimSpace(user.FirstName+" "+user.LastName), true)
 					if err != nil {
 						log.Printf("Failed to add user to group table: %s", err)
 					}

@@ -1,0 +1,4 @@
+ALTER TABLE group_chat_users DROP COLUMN id;
+ALTER TABLE group_chat_users ADD PRIMARY KEY (user_id);
+ALTER TABLE group_chat_users ADD COLUMN IF NOT EXISTS tg_name VARCHAR(255);
+ALTER TABLE group_chat_users ADD COLUMN IF NOT EXISTS member BOOLEAN DEFAULT FALSE;

@@ -44,6 +44,11 @@ func KickUser(bot *tgbotapi.BotAPI, ka *KickArgs) {
 		log.Printf("Failed to unban user: %s", err)
 	}
 
+	err = ka.DBP.UpdateUserLeftAt(ka.ChatID, ka.UserID)
+	if err != nil {
+		log.Printf("Failed to update user left in DB: %s", err)
+	}
+
 	// Send a message to the user
 	_, err = bot.Send(tgbotapi.NewMessage(ka.UserID, ka.KickMessage))
 	if err != nil {
