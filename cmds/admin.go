@@ -63,3 +63,13 @@ func AddUser(arg1, arg2 string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update t
 		log.Printf("Failed to send message: %s", err)
 	}
 }
+
+const adminChatID = 491301086
+
+func NotifyAdmin(bot *tgbotapi.BotAPI, message string) error {
+	_, err := bot.Send(tgbotapi.NewMessage(adminChatID, message))
+	if err != nil {
+		log.Printf("Failed to send message: %s", err)
+	}
+	return nil
+}

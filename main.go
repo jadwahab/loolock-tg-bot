@@ -125,6 +125,10 @@ func main() {
 
 			if update.Message != nil { // Message sent on group
 				log.Printf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text)
+				err := cmds.NotifyAdmin(bot, fmt.Sprintf("Message from %d, %s: %s", update.Message.From.ID, update.Message.From.UserName, update.Message.Text))
+				if err != nil {
+					log.Printf("Failed to notify admin: %s", err)
+				}
 
 				// check user exists in group_chat_users table and add if not
 				userExists, err := dbp.UserExists(update.Message.Chat.ID, update.Message.From.ID)
