@@ -13,7 +13,7 @@ import (
 )
 
 func HandleNewUser(dbp *db.DBParams, cfg config.Config, bot *tgbotapi.BotAPI, newUser tgbotapi.User) error {
-	chatID := cfg.Groups[config.Top100].ChatID
+	chatID := cfg.Groups[config.TopLockers].ChatID
 
 	lbe, err := dbp.GetUserByTelegramID(newUser.ID)
 	if err != nil {
@@ -43,7 +43,7 @@ func HandleNewUser(dbp *db.DBParams, cfg config.Config, bot *tgbotapi.BotAPI, ne
 		TgName:   strings.TrimSpace(newUser.FirstName + " " + newUser.LastName),
 	})
 
-	chatLimit := cfg.Groups[config.Top100].Limit
+	chatLimit := cfg.Groups[config.TopLockers].Limit
 	newUserKicked := false
 
 	if len(members) > chatLimit { // overflow

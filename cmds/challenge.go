@@ -47,7 +47,7 @@ func HandleChallengeResponse(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.
 		}
 		// If challenge is valid, send them the group link
 		_, err = bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("Successfully verified! Join the group by clicking %s", cfg.Groups[config.Top100].Link)))
+			fmt.Sprintf("Successfully verified! Join the group by clicking %s", cfg.Groups[config.TopLockers].Link)))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}

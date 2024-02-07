@@ -75,7 +75,7 @@ func main() {
 			continue
 		}
 
-		if update.Message.Chat.ID == cfg.Groups[config.Top100].ChatID { // TOP 100 CHAT
+		if update.Message.Chat.ID == cfg.Groups[config.TopLockers].ChatID { // TOP LOCKERS CHAT
 
 			if len(update.Message.NewChatMembers) > 0 { // New user(s) join group
 				for _, newUser := range update.Message.NewChatMembers {
@@ -126,11 +126,11 @@ func main() {
 				// }
 
 				if cmds.IsUserAdmin(bot, update.Message.Chat.ID, update.Message.From.ID) && update.Message.Text != "" {
-					cmds.AdminCommand(update.Message.Text, dbp, bot, update)
+					cmds.AdminCommand(cfg, update.Message.Text, dbp, bot, update)
 				}
 			}
 			continue
-		} // end TOP 100 CHAT
+		} // end TOP LOCKERS CHAT
 
 	}
 

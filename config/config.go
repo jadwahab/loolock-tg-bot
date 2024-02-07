@@ -18,7 +18,7 @@ type Config struct {
 type GroupType string
 
 const (
-	Top100      GroupType = "top100"
+	TopLockers  GroupType = "topLockers"
 	OneCoinClub GroupType = "1coinclub"
 	Lockers     GroupType = "lockers"
 )

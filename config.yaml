@@ -4,7 +4,7 @@ responseTimeout: 10   # Timeout for how many mins to wait with no response befor
 botDebug: false       # Bot send debug messages
 refreshPeriod: 12     # Refresh rate interval (hours)
 groups:
-  top100:
+  topLockers:
     link: "https://t.me/+tHaVsa1DwIxmYTE0"
     chatID: -1001984238822
     limit: 50

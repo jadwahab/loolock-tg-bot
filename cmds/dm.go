@@ -15,9 +15,6 @@ import (
 func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	log.Printf("Received DM from [%s:%d] %s", update.Message.From.UserName, update.Message.From.ID, update.Message.Text)
 
-	const lbLimit = 100
-	const top100ChatID = -1001984238822
-
 	switch update.Message.Text {
 
 	case "/verify":
@@ -36,20 +33,20 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 		SendNewUserChallenge(*update.Message.From, bot, update.Message.Chat.ID)
 
-	case "/top100":
+	case "/toplockers":
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
 			fmt.Sprintf("After you have verified yourself using the /verify command, "+
-				"join the group by clicking here: %s", cfg.Groups[config.Top100].Link)))
+				"join the group by clicking here: %s", cfg.Groups[config.TopLockers].Link)))
 		if err != nil {
 			log.Printf("Failed to send message: %s", err)
 		}
 
 	case "/leaderboard":
-		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
+		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, cfg.Groups[config.TopLockers].Limit)
 
 	// unexposed commands:
 	case "/announce":
-		_, err := bot.Send(tgbotapi.NewMessage(top100ChatID, "GM elites!\n\n"+
+		_, err := bot.Send(tgbotapi.NewMessage(cfg.Groups[config.TopLockers].ChatID, "GM elites!\n\n"+
 			"Leaderboard calculations have now gone from using just amount LOCKED "+
 			"to a combitation of amount LOCKED + LIKED!\n\nThis means the leaderbaord "+
 			"will change so don't be surprised if you get kicked - go lock up more!"))
@@ -58,14 +55,14 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 
 	case "/kickintruders":
-		members, err := dbp.GetCurrentMembers(top100ChatID)
+		members, err := dbp.GetCurrentMembers(cfg.Groups[config.TopLockers].ChatID)
 		if err != nil {
 			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
 			if err != nil {
 				log.Printf("Failed to notify admin: %s", err)
 			}
 		}
-		err = helpers.HandleUserOverflow(dbp, cfg, bot, top100ChatID, members, cfg.Groups[config.Top100].Limit)
+		err = helpers.HandleUserOverflow(dbp, cfg, bot, cfg.Groups[config.TopLockers].ChatID, members, cfg.Groups[config.TopLockers].Limit)
 		if err != nil {
 			err = admin.Notify(bot, "Failed to get current members: "+err.Error())
 			if err != nil {
@@ -78,7 +75,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 			_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
 				"Invalid command. Use /verify or /top or /leaderboard\n\n"+
 					"/verify - Verify your identity\n"+
-					"/top100 - Get access to the TOP 100 lockers group\n"+
+					"/topLockers - Get access to the TOP lockers group\n"+
 					"/leaderboard - Get the TOP 100 leaderboard"))
 			if err != nil {
 				log.Printf("Failed to send message: %s", err)

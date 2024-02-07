@@ -5,16 +5,16 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jadwahab/loolock-tg-bot/config"
 	"github.com/jadwahab/loolock-tg-bot/db"
 )
 
-func AdminCommand(cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func AdminCommand(cfg config.Config, cmd string, dbp *db.DBParams, bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	commandArgs := strings.Fields(cmd)
 
 	switch commandArgs[0] {
 	case "/leaderboard":
-		const lbLimit = 100
-		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, lbLimit)
+		PrintLeaderboard(dbp, bot, update.Message.Chat.ID, cfg.Groups[config.TopLockers].Limit)
 
 	default:
 		if strings.HasPrefix(commandArgs[0], "/") {
