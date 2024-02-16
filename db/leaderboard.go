@@ -112,25 +112,35 @@ func (db *DBParams) BatchUpsertLocked(bitcoiners []apis.LockedBitcoiner) error {
 	var valueStrings []string
 	var valueArgs []interface{}
 	i := 1
+	seenPaymails := make(map[string]bool) // Map to track seen paymails
+
 	for _, bitcoiner := range bitcoiners {
-		s, err := paymail.ValidateAndSanitisePaymail("1"+bitcoiner.Handle, false) // TODO: harden instead of prepending '1'
+		s, err := paymail.ValidateAndSanitisePaymail("1"+bitcoiner.Handle, false) // Assuming this returns a struct with an Address field
 		if err != nil {
 			return err
 		}
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i, i+1, i+2, i+3))
-		valueArgs = append(valueArgs, bitcoiner.TotalAmountLocked, s.Address, time.Now(), time.Now())
-		i += 4
+
+		// Check if the paymail has already been seen; skip if true
+		if _, exists := seenPaymails[s.Address]; !exists {
+			seenPaymails[s.Address] = true // Mark this paymail as seen
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", i, i+1, i+2, i+3))
+			valueArgs = append(valueArgs, bitcoiner.TotalAmountLocked, s.Address, time.Now(), time.Now())
+			i += 4
+		}
 	}
 
-	sqlStatement := `
-		INSERT INTO leaderboard (amount_locked, paymail, created_at, updated_at) 
-		VALUES ` + strings.Join(valueStrings, ",") + `
-		ON CONFLICT (paymail)
-		DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
-	`
-	_, err := db.DB.Exec(sqlStatement, valueArgs...)
-	if err != nil {
-		return err
+	// Proceed only if there's at least one unique paymail
+	if len(valueStrings) > 0 {
+		sqlStatement := `
+			INSERT INTO leaderboard (amount_locked, paymail, created_at, updated_at) 
+			VALUES ` + strings.Join(valueStrings, ",") + `
+			ON CONFLICT (paymail)
+			DO UPDATE SET amount_locked = EXCLUDED.amount_locked, updated_at = NOW();
+		`
+		_, err := db.DB.Exec(sqlStatement, valueArgs...)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
