@@ -33,7 +33,7 @@ func HandleDMs(cfg config.Config, dbp *db.DBParams, bot *tgbotapi.BotAPI, update
 		}
 		SendNewUserChallenge(*update.Message.From, bot, update.Message.Chat.ID)
 
-	case "/toplockers":
+	case "/topLockers":
 		_, err := bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID,
 			fmt.Sprintf("After you have verified yourself using the /verify command, "+
 				"join the group by clicking here: %s", cfg.Groups[config.TopLockers].Link)))
